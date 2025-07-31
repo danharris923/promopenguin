@@ -62,8 +62,8 @@ const Sidebar: React.FC<SidebarProps> = ({ topDeals, onDealClick }) => {
                         </span>
                       </div>
                     )}
-                    {priceDisplay.badge && (
-                      <span className="inline-block mt-1 text-xs bg-accent-yellow text-text-dark px-2 py-0.5 rounded">
+                    {priceDisplay.badge && priceDisplay.badge.primary && (
+                      <span className="inline-block mt-1 text-xs bg-red-500 text-white px-2 py-0.5 rounded">
                         {priceDisplay.badge.primary}
                       </span>
                     )}

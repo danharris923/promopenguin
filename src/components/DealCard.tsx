@@ -33,8 +33,8 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
       onClick={onClick}
     >
       <div className="relative h-full flex flex-col">
-        {priceDisplay.badge && (
-          <div className="absolute top-2 left-2 bg-accent-yellow text-text-dark px-3 py-1 rounded-full text-sm font-bold z-10 shadow-md">
+        {priceDisplay.badge && priceDisplay.badge.primary && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-10 shadow-md">
             {priceDisplay.badge.primary}
           </div>
         )}
@@ -70,9 +70,6 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
                       <p className="text-sm text-gray-500 line-through">{priceDisplay.original}</p>
                     )}
                   </div>
-                  {priceDisplay.badge?.secondary && (
-                    <p className="text-xs text-gray-600 mt-1">{priceDisplay.badge.secondary}</p>
-                  )}
                 </div>
                 <button 
                   onClick={(e) => {

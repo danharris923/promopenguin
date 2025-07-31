@@ -53,12 +53,9 @@ const DealModal: React.FC<DealModalProps> = ({ deal, isOpen, onClose }) => {
                     referrerPolicy="no-referrer"
                   />
                 </div>
-                {priceDisplay.badge && (
-                  <div className="mt-4 bg-accent-yellow text-text-dark px-4 py-2 rounded-full text-center font-bold text-lg">
+                {priceDisplay.badge && priceDisplay.badge.primary && (
+                  <div className="mt-4 bg-red-500 text-white px-4 py-2 rounded-full text-center font-bold text-lg">
                     {priceDisplay.badge.primary}
-                    {priceDisplay.badge.secondary && (
-                      <span className="block text-sm font-medium mt-1">{priceDisplay.badge.secondary}</span>
-                    )}
                   </div>
                 )}
               </div>
@@ -75,17 +72,11 @@ const DealModal: React.FC<DealModalProps> = ({ deal, isOpen, onClose }) => {
                         <p className="text-xl text-gray-500 line-through">{priceDisplay.original}</p>
                       )}
                     </div>
-                    {priceDisplay.badge?.secondary && (
-                      <p className="text-sm text-gray-600 mt-2">{priceDisplay.badge.secondary}</p>
-                    )}
                   </div>
                 ) : (
                   <div className="mb-6 text-center">
                     <p className="text-2xl font-bold text-text-dark mb-2">Special Deal Price</p>
                     <p className="text-lg text-primary-green font-bold">Exclusive discount available</p>
-                    {priceDisplay.badge?.secondary && (
-                      <p className="text-sm text-gray-600 mt-2">{priceDisplay.badge.secondary}</p>
-                    )}
                   </div>
                 )}
                 

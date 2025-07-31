@@ -5,33 +5,21 @@ export interface DealLabelResult {
 }
 
 export function getSmartDealLabel(originalPrice: number, currentPrice: number, realDiscountPercent?: number): DealLabelResult {
-  const savings = originalPrice - currentPrice;
   // Use real Amazon discount percentage if available, otherwise calculate from prices
-  const percent = realDiscountPercent && realDiscountPercent > 0 ? realDiscountPercent : Math.round((savings / originalPrice) * 100);
+  const percent = realDiscountPercent && realDiscountPercent > 0 ? realDiscountPercent : Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
   
-  // Smart psychological logic for better CTR
-  const shouldShowPercent = (
-    // Always show % when we have real Amazon discount
-    (realDiscountPercent && realDiscountPercent > 0) ||
-    // Show % when savings >= 20%
-    percent >= 20 ||
-    // Show % when original price is high (>$40) and decent discount
-    (originalPrice > 40 && percent >= 15) ||
-    // Show % when it's a nice round number
-    (percent % 10 === 0 && percent >= 20)
-  );
-  
-  if (shouldShowPercent) {
+  // Only show red percentage tags for deals over 20% off
+  if (percent >= 20) {
     return {
       primary: `${percent}% OFF`,
-      secondary: originalPrice > currentPrice ? `Save $${savings.toFixed(2)}` : undefined,
+      secondary: undefined, // Remove savings calculations
       showPercent: true
     };
   } else {
-    // Show money savings for smaller discounts or low-priced items
+    // Don't show any badge for deals under 20% off
     return {
-      primary: `Save $${savings.toFixed(2)}`,
-      secondary: percent > 5 ? `${percent}% off` : undefined,
+      primary: "",
+      secondary: undefined,
       showPercent: false
     };
   }
