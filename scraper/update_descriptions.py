@@ -57,17 +57,12 @@ def main():
                 deal_title = row[title_col] if len(row) > title_col else f"Deal {i-1}"
                 current_description = row[description_col] if len(row) > description_col else ""
                 
-                # Check if description needs updating (contains HTML tags)
-                if current_description and ("<p>" in current_description or "&#8230;" in current_description or "savingsguru.ca" in current_description):
+                # Check if description needs updating (contains HTML tags or old RSS content)
+                if current_description and ("<p>" in current_description or "&#8230;" in current_description or "savingsguru.ca" in current_description or "**If you" in current_description or "<a href" in current_description):
                     print(f"\nUpdating row {i}: {deal_title[:40]}...")
                     
                     # Generate new SEO-friendly description
                     new_description = scraper.clean_description(current_description, deal_title)
-                    
-                    print(f"Old: {current_description[:80]}...")
-                    # Remove emojis for display to avoid Unicode issues
-                    display_desc = new_description.encode('ascii', 'ignore').decode('ascii')
-                    print(f"New: {display_desc[:80]}...")
                     
                     # Update the sheet with new description
                     scraper.sheet.update_cell(i, description_col + 1, new_description)  # +1 for 1-based indexing

@@ -81,16 +81,8 @@ class SavingsGuruScraperEnv:
         # Clean up extra whitespace and newlines
         text = re.sub(r'\s+', ' ', text).strip()
         
-        # Extract key features and benefits from the cleaned text
-        if len(text) > 50:
-            # Take the first meaningful sentence or feature
-            sentences = text.split('.')
-            if sentences and len(sentences[0]) > 20:
-                key_feature = sentences[0].strip() + "."
-                # Create SEO-friendly description with the key feature
-                return f"🔥 DEAL ALERT! {key_feature} Perfect for anyone looking for quality and value. Limited time offer - grab yours before it's gone!"
-        
-        # Fallback to generated description
+        # Always use our generated SEO descriptions instead of trying to parse RSS content
+        # The RSS content is often messy and inconsistent
         return self.generate_seo_description(product_title)
     
     def generate_seo_description(self, product_title=""):
