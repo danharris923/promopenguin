@@ -2,6 +2,6 @@
 
 This file is used to trigger Vercel deployments when needed.
 
-Last update: 2025-07-31 18:00:00
+Last update: 2025-07-31 18:05:00
 
-Deployment trigger: #7 - Fix 23% discount bug with real Amazon discounts
+Deployment trigger: #8 - Real Amazon discounts deployed (7%, 15%, 22%, 50%, 47%)
