@@ -2,6 +2,6 @@
 
 This file is used to trigger Vercel deployments when needed.
 
-Last update: 2025-07-31 14:35:00
+Last update: 2025-07-31 17:45:00
 
-Deployment trigger: #1
+Deployment trigger: #2 - Real product images and cleanup
