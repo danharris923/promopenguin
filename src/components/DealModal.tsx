@@ -12,7 +12,7 @@ interface DealModalProps {
 const DealModal: React.FC<DealModalProps> = ({ deal, isOpen, onClose }) => {
   if (!isOpen || !deal) return null;
 
-  const priceDisplay = getPriceDisplay(deal.originalPrice, deal.price);
+  const priceDisplay = getPriceDisplay(deal.originalPrice, deal.price, deal.discountPercent);
   const priceVisibility = getPriceVisibility(deal.id);
 
   return (

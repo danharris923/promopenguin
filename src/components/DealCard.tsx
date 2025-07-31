@@ -15,7 +15,7 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
   const bgColor = bgColors[colorIndex % bgColors.length];
   
   const isLarge = variant === 'featured';
-  const priceDisplay = getPriceDisplay(deal.originalPrice, deal.price);
+  const priceDisplay = getPriceDisplay(deal.originalPrice, deal.price, deal.discountPercent);
   const priceVisibility = getPriceVisibility(deal.id);
   
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {

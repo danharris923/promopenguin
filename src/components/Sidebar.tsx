@@ -23,7 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ topDeals, onDealClick }) => {
         
         <div className="space-y-4">
           {topDeals.map((deal, index) => {
-            const priceDisplay = getPriceDisplay(deal.originalPrice, deal.price);
+            const priceDisplay = getPriceDisplay(deal.originalPrice, deal.price, deal.discountPercent);
             const priceVisibility = getPriceVisibility(deal.id);
             return (
               <div

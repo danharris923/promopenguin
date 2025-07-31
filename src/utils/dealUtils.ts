@@ -4,12 +4,15 @@ export interface DealLabelResult {
   showPercent: boolean;
 }
 
-export function getSmartDealLabel(originalPrice: number, currentPrice: number): DealLabelResult {
+export function getSmartDealLabel(originalPrice: number, currentPrice: number, realDiscountPercent?: number): DealLabelResult {
   const savings = originalPrice - currentPrice;
-  const percent = Math.round((savings / originalPrice) * 100);
+  // Use real Amazon discount percentage if available, otherwise calculate from prices
+  const percent = realDiscountPercent && realDiscountPercent > 0 ? realDiscountPercent : Math.round((savings / originalPrice) * 100);
   
   // Smart psychological logic for better CTR
   const shouldShowPercent = (
+    // Always show % when we have real Amazon discount
+    (realDiscountPercent && realDiscountPercent > 0) ||
     // Show % when savings >= 20%
     percent >= 20 ||
     // Show % when original price is high (>$40) and decent discount
@@ -34,7 +37,7 @@ export function getSmartDealLabel(originalPrice: number, currentPrice: number): 
   }
 }
 
-export function getPriceDisplay(originalPrice: number, currentPrice: number) {
+export function getPriceDisplay(originalPrice: number, currentPrice: number, realDiscountPercent?: number) {
   const savings = originalPrice - currentPrice;
   
   if (savings <= 0) {
@@ -45,7 +48,7 @@ export function getPriceDisplay(originalPrice: number, currentPrice: number) {
     };
   }
   
-  const dealLabel = getSmartDealLabel(originalPrice, currentPrice);
+  const dealLabel = getSmartDealLabel(originalPrice, currentPrice, realDiscountPercent);
   
   return {
     current: `$${currentPrice.toFixed(2)}`,
