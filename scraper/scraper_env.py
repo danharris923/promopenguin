@@ -223,10 +223,13 @@ class SavingsGuruScraperEnv:
                 discount_elem = soup.select_one(selector)
                 if discount_elem:
                     discount_text = discount_elem.get_text().strip()
-                    # Extract percentage number
-                    discount_match = re.search(r'(\d+)%', discount_text)
+                    print(f"Found discount text: '{discount_text}' from selector: {selector}")
+                    # Extract percentage number (handle negative signs like "-7%")
+                    discount_match = re.search(r'-?(\d+)%', discount_text)
                     if discount_match:
-                        return int(discount_match.group(1))
+                        percentage = int(discount_match.group(1))
+                        print(f"Extracted discount percentage: {percentage}%")
+                        return percentage
             
             return 0
             
@@ -315,14 +318,14 @@ class SavingsGuruScraperEnv:
                 
                 # Get real prices and discount from Amazon
                 if amazon_url and "/dp/" in amazon_url:
-                    # First get discount percentage (for red sale tags)
+                    # First get discount percentage (for red sale tags) 
                     discount = self.scrape_amazon_discount(amazon_url)
                     
                     # Then get actual prices (scraped but not always shown)
                     current_price, original_price, _ = self.scrape_amazon_price(amazon_url)
                     
-                    # Use the scraped discount, not calculated
-                    # because Amazon's discount logic is more accurate
+                    # Use the scraped discount from Amazon's own percentage display
+                    # This is more accurate than calculated discount
                 else:
                     current_price = 0
                     original_price = 0
