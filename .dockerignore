@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+build
+.git
+.gitignore
+README.md
+.env
+.env.local
+.DS_Store
+*.log
+coverage
+.vscode
+.idea
+*.swp
+*.swo
+credentials/
+google_service_account.json
