@@ -85,8 +85,7 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
               // Show "Check Price" button for ~80% of deals (badge already shown at top)
               <div className="w-full">
                 <div className="text-center mb-3">
-                  <p className="text-lg font-bold text-text-dark">Special Deal Price</p>
-                  <p className="text-sm text-primary-green font-medium">Exclusive discount available</p>
+                  <p className="text-sm text-text-dark leading-tight">{deal.description}</p>
                 </div>
                 <a
                   href={deal.affiliateUrl}
@@ -96,7 +95,6 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
                   className="block w-full bg-gradient-to-r from-primary-green to-green-600 text-white py-3 px-4 rounded-lg text-center font-bold hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105 shadow-lg"
                 >
                   {priceVisibility.checkPriceMessage}
-                  <span className="block text-xs mt-1 opacity-90">See exclusive pricing on Amazon</span>
                 </a>
               </div>
             )}

@@ -75,12 +75,10 @@ const DealModal: React.FC<DealModalProps> = ({ deal, isOpen, onClose }) => {
                   </div>
                 ) : (
                   <div className="mb-6 text-center">
-                    <p className="text-2xl font-bold text-text-dark mb-2">Special Deal Price</p>
-                    <p className="text-lg text-primary-green font-bold">Exclusive discount available</p>
+                    <p className="text-lg text-text-dark leading-relaxed">{deal.description}</p>
                   </div>
                 )}
                 
-                <p className="text-gray-700 mb-6">{deal.description}</p>
                 
                 <a
                   href={deal.affiliateUrl}
@@ -93,9 +91,6 @@ const DealModal: React.FC<DealModalProps> = ({ deal, isOpen, onClose }) => {
                   }`}
                 >
                   {priceVisibility.showPrice ? 'Shop Now at Amazon' : priceVisibility.checkPriceMessage}
-                  {!priceVisibility.showPrice && (
-                    <span className="block text-sm mt-1 opacity-90">Get exclusive deal pricing now</span>
-                  )}
                 </a>
                 
                 <p className="text-xs text-gray-500 mt-4 text-center">
