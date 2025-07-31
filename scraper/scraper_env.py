@@ -70,18 +70,38 @@ class SavingsGuruScraperEnv:
         return deals
     
     def extract_amazon_link(self, deal_url):
-        """Extract Amazon link from deal page"""
+        """Extract real Amazon product link from SavingsGuru post"""
         try:
+            from bs4 import BeautifulSoup
+            
             response = requests.get(deal_url, timeout=10)
-            if response.status_code == 200:
-                # Look for Amazon links
-                amazon_pattern = r'https?://(?:www\.)?amazon\.[a-z]{2,3}(?:\.[a-z]{2})?/[^"\s]+'
-                matches = re.findall(amazon_pattern, response.text)
-                if matches:
-                    return self.add_affiliate_tag(matches[0])
-        except:
-            pass
-        return None
+            if response.status_code != 200:
+                return None
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Look for amzn.to short links (these are the real product links)
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                if 'amzn.to/' in href:
+                    # Follow redirect to get actual Amazon URL
+                    redirect_response = requests.head(href, allow_redirects=True, timeout=10)
+                    final_url = redirect_response.url
+                    
+                    # Add our affiliate tag
+                    return self.add_affiliate_tag(final_url)
+            
+            # Fallback: look for direct Amazon product URLs
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                if 'amazon' in href.lower() and ('/dp/' in href or '/gp/product/' in href):
+                    return self.add_affiliate_tag(href)
+                    
+            return None
+            
+        except Exception as e:
+            print(f"Error extracting Amazon link: {e}")
+            return None
     
     def add_affiliate_tag(self, amazon_url):
         """Add affiliate tag to Amazon URL"""
@@ -92,6 +112,44 @@ class SavingsGuruScraperEnv:
         # Rebuild URL with affiliate tag
         new_query = '&'.join([f"{k}={v[0]}" for k, v in params.items()])
         return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
+    
+    def extract_product_image(self, deal_url):
+        """Extract the main product image from SavingsGuru post"""
+        try:
+            from bs4 import BeautifulSoup
+            
+            response = requests.get(deal_url, timeout=10)
+            if response.status_code != 200:
+                return None
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Look for the main product image - usually the first content image
+            content_img = soup.select_one('.entry-content img, .post-content img, article img')
+            if content_img and content_img.get('src'):
+                img_url = content_img.get('src')
+                # Make sure it's a full URL
+                if img_url.startswith('//'):
+                    img_url = 'https:' + img_url
+                elif img_url.startswith('/'):
+                    img_url = 'https://www.savingsguru.ca' + img_url
+                return img_url
+            
+            # Fallback: look for featured image
+            featured_img = soup.select_one('img.wp-post-image, img.attachment-full')
+            if featured_img and featured_img.get('src'):
+                img_url = featured_img.get('src')
+                if img_url.startswith('//'):
+                    img_url = 'https:' + img_url
+                elif img_url.startswith('/'):
+                    img_url = 'https://www.savingsguru.ca' + img_url
+                return img_url
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error extracting product image: {e}")
+            return None
     
     def extract_price_info(self, description):
         """Extract price information from description"""
@@ -136,6 +194,94 @@ class SavingsGuruScraperEnv:
             
         return round(current_price, 2), round(original_price, 2), discount
     
+    def scrape_amazon_discount(self, amazon_url):
+        """Scrape discount percentage from Amazon product page for sale tags"""
+        try:
+            from bs4 import BeautifulSoup
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept-Language': 'en-CA,en;q=0.9',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            }
+            
+            response = requests.get(amazon_url, headers=headers, timeout=15)
+            if response.status_code != 200:
+                return 0
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Look for discount percentage - same as your savingsPercentage extraction
+            discount_selectors = [
+                '.savingsPercentage',
+                '.a-text-strike + .a-text-price .a-offscreen',
+                '[data-a-color="price"] .a-text-strike + .a-text-price',
+                '.a-price-savings-percentage',
+            ]
+            
+            for selector in discount_selectors:
+                discount_elem = soup.select_one(selector)
+                if discount_elem:
+                    discount_text = discount_elem.get_text().strip()
+                    # Extract percentage number
+                    discount_match = re.search(r'(\d+)%', discount_text)
+                    if discount_match:
+                        return int(discount_match.group(1))
+            
+            return 0
+            
+        except Exception as e:
+            print(f"Error scraping Amazon discount: {e}")
+            return 0
+    
+    def scrape_amazon_price(self, amazon_url):
+        """Scrape current and original price from Amazon"""
+        try:
+            from bs4 import BeautifulSoup
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept-Language': 'en-CA,en;q=0.9',
+            }
+            
+            response = requests.get(amazon_url, headers=headers, timeout=15)
+            if response.status_code != 200:
+                return 0, 0, 0
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Extract current price
+            current_price = 0
+            price_selectors = ['.a-price-whole', '.a-price .a-offscreen']
+            
+            for selector in price_selectors:
+                price_elem = soup.select_one(selector)
+                if price_elem:
+                    price_text = price_elem.get_text().strip()
+                    price_match = re.search(r'[\d,]+\.?\d*', price_text.replace('$', '').replace(',', ''))
+                    if price_match:
+                        current_price = float(price_match.group())
+                        break
+            
+            # Extract original price
+            original_price = 0
+            original_selectors = ['.a-text-strike .a-offscreen', '#priceblock_listprice']
+            
+            for selector in original_selectors:
+                price_elem = soup.select_one(selector)
+                if price_elem:
+                    price_text = price_elem.get_text().strip()
+                    price_match = re.search(r'[\d,]+\.?\d*', price_text.replace('$', '').replace(',', ''))
+                    if price_match:
+                        original_price = float(price_match.group())
+                        break
+            
+            return current_price, original_price, 0
+            
+        except Exception as e:
+            print(f"Error scraping Amazon price: {e}")
+            return 0, 0, 0
+    
     def update_sheet_from_rss(self):
         """Fetch RSS and update Google Sheet"""
         print("Fetching RSS feed...")
@@ -163,11 +309,24 @@ class SavingsGuruScraperEnv:
             if deal_id not in existing_ids:
                 print(f"Processing: {deal['title'][:50]}...")
                 
-                # Extract Amazon link
+                # Extract Amazon link and product image
                 amazon_url = self.extract_amazon_link(deal['link'])
+                product_image = self.extract_product_image(deal['link'])
                 
-                # Extract prices
-                current_price, original_price, discount = self.extract_price_info(deal['description'])
+                # Get real prices and discount from Amazon
+                if amazon_url and "/dp/" in amazon_url:
+                    # First get discount percentage (for red sale tags)
+                    discount = self.scrape_amazon_discount(amazon_url)
+                    
+                    # Then get actual prices (scraped but not always shown)
+                    current_price, original_price, _ = self.scrape_amazon_price(amazon_url)
+                    
+                    # Use the scraped discount, not calculated
+                    # because Amazon's discount logic is more accurate
+                else:
+                    current_price = 0
+                    original_price = 0
+                    discount = 0
                 
                 # Prepare row data
                 row_data = [
@@ -178,7 +337,7 @@ class SavingsGuruScraperEnv:
                     current_price,
                     original_price,
                     discount,
-                    'https://via.placeholder.com/400x300/EAB2AB/333333?text=' + deal['title'][:20].replace(' ', '+'),  # Placeholder with title
+                    product_image or '/placeholder-deal.svg',  # Use real product image from RSS post
                     deal['description'][:500],  # Limit description length
                     'General',  # Category
                     'approved',  # Status - auto-approved
