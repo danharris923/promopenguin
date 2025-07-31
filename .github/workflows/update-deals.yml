@@ -26,26 +26,21 @@ jobs:
         cd scraper
         pip install -r requirements.txt
     
-    - name: Create credentials file
-      run: |
-        mkdir -p credentials
-        echo '${{ secrets.GOOGLE_SHEETS_CREDS }}' > credentials/google_service_account.json
-    
     - name: Run scraper
       env:
-        GOOGLE_CREDS_FILE: ../credentials/google_service_account.json
+        GOOGLE_SHEETS_CREDS: ${{ secrets.GOOGLE_SHEETS_CREDS }}
         SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
       run: |
         cd scraper
-        python savingsguru_scraper.py
+        python scraper_env.py
     
     - name: Generate deals.json
       env:
-        GOOGLE_CREDS_FILE: ../credentials/google_service_account.json
+        GOOGLE_SHEETS_CREDS: ${{ secrets.GOOGLE_SHEETS_CREDS }}
         SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
       run: |
         cd scraper
-        python automation.py
+        python -c "from scraper_env import SavingsGuruScraperEnv; scraper = SavingsGuruScraperEnv(); scraper.generate_deals_json()"
     
     - name: Commit and push if changed
       run: |
