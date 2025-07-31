@@ -49,8 +49,8 @@ class SavingsGuruScraperEnv:
             if os.path.exists(temp_creds_file):
                 os.unlink(temp_creds_file)
         
-        # Amazon affiliate tag - using the Canadian tag
-        self.affiliate_tag = "savingsguru0a-20"
+        # Amazon affiliate tag - correct tracking tag
+        self.affiliate_tag = "savingsgurucc-20"
         
     def parse_rss_feed(self, feed_url="https://www.savingsguru.ca/feed/"):
         """Parse RSS feed from SavingsGuru.ca"""

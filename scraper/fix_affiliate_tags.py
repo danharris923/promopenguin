@@ -1,44 +1,63 @@
 #!/usr/bin/env python3
 """
-Fix affiliate tags in Google Sheet from saviguru-20 to savingsgurucc-20
+Fix all affiliate tags in deals.json to use the correct savingsgurucc-20 tag
 """
 
-from savingsguru_scraper import SavingsGuruScraper
+import json
+import re
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
-def fix_affiliate_tags():
-    """Update all affiliate tags in the sheet"""
-    scraper = SavingsGuruScraper(
-        credentials_file='../../google_service_account.json',
-        spreadsheet_id='1jkFjKFyOtv5zGw-l7ZF7H1i0e4MunSj3dP2bX7oA3zg'
-    )
+def fix_affiliate_tag(url, correct_tag="savingsgurucc-20"):
+    """Fix the affiliate tag in an Amazon URL"""
+    parsed = urlparse(url)
     
-    # Get all records
-    records = scraper.sheet.get_all_records()
-    print(f"Found {len(records)} deals to update")
+    # If it's not an Amazon URL, return as-is
+    if 'amazon' not in parsed.netloc.lower():
+        return url
     
-    # Update each row
-    for i, record in enumerate(records):
-        row_num = i + 2  # +2 because row 1 is header, and sheets are 1-indexed
+    # Parse query parameters
+    params = parse_qs(parsed.query)
+    
+    # Update the tag parameter
+    params['tag'] = [correct_tag]
+    
+    # Rebuild URL with correct tag
+    new_query = urlencode(params, doseq=True)
+    new_url = urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        parsed.path,
+        parsed.params,
+        new_query,
+        parsed.fragment
+    ))
+    
+    return new_url
+
+def main():
+    # Load existing deals.json
+    with open('../public/deals.json', 'r') as f:
+        deals = json.load(f)
+    
+    print(f"Fixing affiliate tags for {len(deals)} deals...")
+    
+    updated_count = 0
+    
+    # Update each deal's affiliate URL
+    for deal in deals:
+        old_url = deal['affiliateUrl']
+        new_url = fix_affiliate_tag(old_url)
         
-        # Get current Amazon URL
-        amazon_url = record.get('Amazon URL', '')
-        
-        # Replace the affiliate tag
-        if 'saviguru-20' in amazon_url:
-            new_url = amazon_url.replace('saviguru-20', 'savingsgurucc-20')
-            scraper.sheet.update_cell(row_num, 4, new_url)  # Column 4 is Amazon URL
-            print(f"Updated row {row_num}: {record['Title'][:30]}...")
-        elif 'tag=' in amazon_url and 'savingsgurucc-20' not in amazon_url:
-            # Fix any other incorrect tags
-            import re
-            new_url = re.sub(r'tag=[^&]+', 'tag=savingsgurucc-20', amazon_url)
-            scraper.sheet.update_cell(row_num, 4, new_url)
-            print(f"Fixed tag in row {row_num}: {record['Title'][:30]}...")
+        if old_url != new_url:
+            deal['affiliateUrl'] = new_url
+            updated_count += 1
+            print(f"Updated {deal['title'][:30]}...")
     
-    print("\nRegenerating deals.json with corrected tags...")
-    scraper.generate_deals_json()
+    # Save updated deals.json
+    with open('../public/deals.json', 'w') as f:
+        json.dump(deals, f, indent=2)
     
-    print("Done! All affiliate tags have been updated to savingsgurucc-20")
+    print(f"\nSuccessfully updated {updated_count} affiliate links to use savingsgurucc-20!")
 
 if __name__ == "__main__":
-    fix_affiliate_tags()
+    main()
