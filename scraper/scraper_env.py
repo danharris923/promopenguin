@@ -51,18 +51,99 @@ class SavingsGuruScraperEnv:
         
         # Amazon affiliate tag - correct tracking tag
         self.affiliate_tag = "savingsgurucc-20"
+    
+    def clean_description(self, raw_description, product_title=""):
+        """Create snappy, SEO-friendly descriptions for deal cards"""
+        if not raw_description:
+            return self.generate_seo_description(product_title)
+        
+        # Remove HTML tags and decode entities
+        import html
+        from bs4 import BeautifulSoup
+        
+        cleaned = html.unescape(raw_description)
+        soup = BeautifulSoup(cleaned, 'html.parser')
+        text = soup.get_text()
+        
+        # Remove unwanted phrases and artifacts
+        unwanted_phrases = [
+            "sells on Amazon. I think the price is very good.",
+            "Please read some of the reviews and see people thought of the product.",
+            "**If you're not sure whether to buy, add to cart, and you can come back to it later!**",
+            "The post", "appeared first on", "Savings Guru", "SavingsGuru",
+            "[…]", "&#8230;", "[read more]", "Continue reading",
+            "savingsguru.ca"
+        ]
+        
+        for phrase in unwanted_phrases:
+            text = text.replace(phrase, "")
+        
+        # Clean up extra whitespace and newlines
+        text = re.sub(r'\s+', ' ', text).strip()
+        
+        # Extract key features and benefits from the cleaned text
+        if len(text) > 50:
+            # Take the first meaningful sentence or feature
+            sentences = text.split('.')
+            if sentences and len(sentences[0]) > 20:
+                key_feature = sentences[0].strip() + "."
+                # Create SEO-friendly description with the key feature
+                return f"🔥 DEAL ALERT! {key_feature} Perfect for anyone looking for quality and value. Limited time offer - grab yours before it's gone!"
+        
+        # Fallback to generated description
+        return self.generate_seo_description(product_title)
+    
+    def generate_seo_description(self, product_title=""):
+        """Generate engaging, SEO-friendly descriptions using a variety of generic templates"""
+        import random
+        
+        # Large collection of snappy, SEO-friendly descriptions
+        templates = [
+            "🔥 DEAL ALERT! Incredible savings on this must-have item. Premium quality meets unbeatable value - don't miss out!",
+            "⚡ HOT DEAL! Get more bang for your buck with this amazing offer. Quality you can trust at a price you'll love!",
+            "🎯 This deal is too good to pass up! Discover why thousands are raving about this incredible value. Act fast!",
+            "💫 Your new favorite find! This amazing product combines style, quality, and savings in one perfect package.",
+            "🚀 Level up your life with this game-changing deal! Don't let this opportunity slip away - grab yours today!",
+            "⭐ Customer favorite alert! Join the thousands who've already discovered this incredible value. Limited time only!",
+            "🏆 WINNER! This top-rated product delivers exceptional quality at an unbeatable price. Your wallet will thank you!",
+            "💎 Hidden gem discovered! Premium features at a fraction of the cost. Smart shoppers are loving this deal!",
+            "🎊 Celebrate these savings! This fantastic offer won't last long. Treat yourself to quality for less!",
+            "🌟 5-star quality, amazing price! See why this product is flying off the shelves. Limited quantity available!",
+            "💰 Money-saving magic! Get premium quality without the premium price tag. This deal is pure gold!",
+            "🔓 Unlock incredible savings! This exclusive offer gives you more value for your money. Don't wait!",
+            "🎁 Gift yourself this amazing deal! Perfect for treating yourself or someone special. Quality guaranteed!",
+            "⏰ Time-sensitive offer! Smart shoppers know a good deal when they see one. This won't last long!",
+            "🌈 Brighten your day with amazing savings! This fantastic product delivers quality and value in one package.",
+            "🏅 Award-winning value! Customers love this product for good reason. Join the satisfied buyers today!",
+            "🔥 Trending now! This hot item is flying off the shelves. Secure yours at this incredible price!",
+            "💡 Smart choice alert! This brilliant buy offers exceptional value for money. Your future self will thank you!",
+            "🎪 Spectacular savings! Step right up to this amazing deal. Quality performance at an unbeatable price!",
+            "🌺 Blooming with value! This delightful deal brings quality and savings together beautifully.",
+            "⚖️ Perfect balance of quality and price! This smart buy delivers everything you want at a price you'll love.",
+            "🎵 Music to your wallet! This harmonious blend of quality and value creates the perfect deal symphony.",
+            "🏖️ Summer savings vibes! Cool deals, hot prices, and quality that shines. Dive into these savings!",
+            "🍀 Lucky you! This rare find offers premium quality at an incredibly lucky price. Fortune favors the bold!",
+            "🎭 Drama-free shopping! This straightforward deal delivers exactly what you want at a great price.",
+            "🚗 Fast-track to savings! This express deal gets you premium quality without the premium wait or price!",
+            "🍯 Sweet deal alert! This golden opportunity offers pure value that's as satisfying as honey.",
+            "🌙 Dreamy prices, quality reality! This night-and-day difference in value will have you sleeping soundly.",
+            "🎨 Masterpiece pricing! This artfully crafted deal paints the perfect picture of value and quality.",
+            "🏰 Royal treatment, peasant prices! Feel like royalty with this premium quality at a commoner's cost!"
+        ]
+        
+        return random.choice(templates)
         
     def parse_rss_feed(self, feed_url="https://www.savingsguru.ca/feed/"):
         """Parse RSS feed from SavingsGuru.ca"""
         feed = feedparser.parse(feed_url)
         deals = []
         
-        for entry in feed.entries[:20]:  # Get latest 20 entries
+        for entry in feed.entries[:100]:  # Get latest 100 entries
             deal = {
                 'title': entry.title,
                 'link': entry.link,
                 'published': entry.published,
-                'description': entry.get('summary', ''),
+                'description': self.clean_description(entry.get('summary', ''), entry.title),
                 'status': 'approved'  # Auto-approved since already vetted on original site
             }
             deals.append(deal)
@@ -341,7 +422,7 @@ class SavingsGuruScraperEnv:
                     original_price,
                     discount,
                     product_image or '/placeholder-deal.svg',  # Use real product image from RSS post
-                    deal['description'][:500],  # Limit description length
+                    deal['description'],  # SEO-friendly description already optimized
                     'General',  # Category
                     'approved',  # Status - auto-approved
                     datetime.now().strftime('%Y-%m-%d'),
