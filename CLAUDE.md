@@ -108,8 +108,29 @@ interface Deal {
 ## Environment Variables & Secrets
 
 ### Required GitHub Secrets
-- `GOOGLE_SHEETS_CREDS`: Service account JSON credentials for Google Sheets API
+**IMPORTANT**: These secrets must be added to your GitHub repository settings (Settings → Secrets and variables → Actions) for the workflow to run:
+
+- `GOOGLE_SHEETS_CREDS`: Service account JSON credentials for Google Sheets API (entire JSON file contents)
 - `SPREADSHEET_ID`: The ID of your Google Sheet containing deals
+
+To add these secrets:
+1. Go to your GitHub repository
+2. Navigate to Settings → Secrets and variables → Actions
+3. Click "New repository secret"
+4. Add each secret with the exact names above
+
+#### Getting Google Sheets Credentials:
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable Google Sheets API
+4. Create a Service Account (APIs & Services → Credentials → Create Credentials → Service Account)
+5. Download the JSON key file
+6. Copy the entire contents of the JSON file as the `GOOGLE_SHEETS_CREDS` secret
+7. Share your Google Sheet with the service account email (found in the JSON file)
+
+#### Finding your Spreadsheet ID:
+The spreadsheet ID is in the URL of your Google Sheet:
+`https://docs.google.com/spreadsheets/d/[SPREADSHEET_ID]/edit`
 
 ### Troubleshooting
 
