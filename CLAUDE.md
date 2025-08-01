@@ -21,6 +21,12 @@ npm run build
 
 # Run tests
 npm test
+
+# Type checking (TypeScript)
+npx tsc --noEmit
+
+# Note: This project uses Create React App with built-in ESLint configuration
+# Linting runs automatically during development with npm start
 ```
 
 ### Python Scraper
@@ -30,14 +36,18 @@ cd scraper
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Run the main scraper
-python savingsguru_scraper.py
+# Run the main scraper (requires environment variables)
+python scraper_env.py
 
 # Run automation script (fetches deals and updates Git)
 python automation.py
 
-# Test affiliate link rewriting
-python test_affiliate_links.py
+# Run REST API scraper
+python rest_api_scraper.py
+
+# Run scraper with environment variables
+python run_scraper_with_env.py
+python run_with_env.py
 ```
 
 ## Architecture Overview
@@ -94,3 +104,18 @@ interface Deal {
 - **Price Display**: Always show both current and original price with discount percentage
 - **Responsive Design**: Mobile-first approach, sidebar hidden on mobile
 - **Static Deployment**: No backend server, all data served as static JSON
+
+## Environment Variables & Secrets
+
+### Required GitHub Secrets
+- `GOOGLE_SHEETS_CREDS`: Service account JSON credentials for Google Sheets API
+- `SPREADSHEET_ID`: The ID of your Google Sheet containing deals
+
+### Troubleshooting
+
+#### GitHub Actions Dependency Issues
+If the scraper fails in GitHub Actions due to dependency issues:
+1. The workflow now includes `pip install --upgrade pip setuptools wheel` before installing requirements
+2. Alternative `requirements-stable.txt` includes additional dependencies that oauth2client might need
+3. Common problematic packages: `oauth2client` (deprecated but still used), `gspread`
+4. To use alternative requirements: change `pip install -r requirements.txt` to `pip install -r requirements-stable.txt` in workflow

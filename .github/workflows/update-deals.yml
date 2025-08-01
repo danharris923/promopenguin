@@ -24,6 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         cd scraper
+        pip install --upgrade pip setuptools wheel
         pip install -r requirements.txt
     
     - name: Run scraper
