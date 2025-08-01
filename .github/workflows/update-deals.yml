@@ -9,6 +9,7 @@ on:
 jobs:
   update-deals:
     runs-on: ubuntu-latest
+    environment: Production - savingsguru
     
     steps:
     - name: Checkout repository
