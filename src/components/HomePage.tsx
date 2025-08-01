@@ -84,7 +84,7 @@ const HomePage: React.FC = () => {
       </main>
       
       {/* Desktop: Modal, Mobile: Bottom Sheet */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence exitBeforeEnter>
         {modalOpen && (
           isMobile ? (
             <BottomSheet
