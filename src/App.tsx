@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import Header from './components/Header';
 import DealCard from './components/DealCard';
 import DealModal from './components/DealModal';
+import BottomSheet from './components/BottomSheet';
 import Sidebar from './components/Sidebar';
 import { Deal } from './types/Deal';
+import { useIsMobile } from './utils/useIsMobile';
 
 function App() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetch('/deals.json')
@@ -82,11 +86,26 @@ function App() {
         </div>
       </main>
       
-      <DealModal
-        deal={selectedDeal}
-        isOpen={modalOpen}
-        onClose={handleCloseModal}
-      />
+      {/* Desktop: Modal, Mobile: Bottom Sheet */}
+      <AnimatePresence mode="wait">
+        {modalOpen && (
+          isMobile ? (
+            <BottomSheet
+              key="bottom-sheet"
+              deal={selectedDeal}
+              isOpen={modalOpen}
+              onClose={handleCloseModal}
+            />
+          ) : (
+            <DealModal
+              key="desktop-modal"
+              deal={selectedDeal}
+              isOpen={modalOpen}
+              onClose={handleCloseModal}
+            />
+          )
+        )}
+      </AnimatePresence>
       
       <footer className="bg-white border-t mt-12">
         <div className="max-w-container mx-auto px-4 py-8">
