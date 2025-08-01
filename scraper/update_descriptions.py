@@ -47,6 +47,7 @@ def main():
         
         # Find column indices
         title_col = headers.index('Title') if 'Title' in headers else 1
+        amazon_url_col = headers.index('Amazon URL') if 'Amazon URL' in headers else 3
         description_col = headers.index('Description') if 'Description' in headers else 8
         
         updated_count = 0
@@ -55,22 +56,34 @@ def main():
         for i, row in enumerate(all_data[1:], start=2):  # Start from row 2
             if len(row) > max(title_col, description_col):
                 deal_title = row[title_col] if len(row) > title_col else f"Deal {i-1}"
+                amazon_url = row[amazon_url_col] if len(row) > amazon_url_col else ""
                 current_description = row[description_col] if len(row) > description_col else ""
                 
-                # Check if description needs updating (contains HTML tags or old RSS content)
-                if current_description and ("<p>" in current_description or "&#8230;" in current_description or "savingsguru.ca" in current_description or "**If you" in current_description or "<a href" in current_description):
+                # Check if description needs updating (contains HTML tags, old RSS content, or generic phrases)
+                needs_update = current_description and any([
+                    "<p>" in current_description,
+                    "&#8230;" in current_description, 
+                    "savingsguru.ca" in current_description, 
+                    "**If you" in current_description, 
+                    "<a href" in current_description,
+                    "🔥 DEAL ALERT!" in current_description,  # Our old generic phrases
+                    "⚡ HOT DEAL!" in current_description,
+                    "🎯 This deal is" in current_description
+                ])
+                
+                if needs_update:
                     print(f"\nUpdating row {i}: {deal_title[:40]}...")
                     
-                    # Generate new SEO-friendly description
-                    new_description = scraper.clean_description(current_description, deal_title)
+                    # Generate new SEO-friendly description using Amazon URL for SEO gold
+                    new_description = scraper.clean_description(current_description, deal_title, amazon_url)
                     
                     # Update the sheet with new description
                     scraper.sheet.update_cell(i, description_col + 1, new_description)  # +1 for 1-based indexing
                     
                     updated_count += 1
                     
-                    # Rate limiting to avoid hitting API limits
-                    time.sleep(2)
+                    # Rate limiting to avoid hitting API limits (increased for Amazon scraping)
+                    time.sleep(3)
                 else:
                     print(f"Skipping {deal_title[:30]} - description looks good")
         

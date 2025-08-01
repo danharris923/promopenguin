@@ -52,37 +52,46 @@ class SavingsGuruScraperEnv:
         # Amazon affiliate tag - correct tracking tag
         self.affiliate_tag = "savingsgurucc-20"
     
-    def clean_description(self, raw_description, product_title=""):
-        """Create snappy, SEO-friendly descriptions for deal cards"""
-        if not raw_description:
-            return self.generate_seo_description(product_title)
+    def clean_description(self, raw_description, product_title="", amazon_url=None):
+        """Create SEO-friendly descriptions using real Amazon product descriptions"""
+        # If we have an Amazon URL, try to get real product description
+        if amazon_url and "/dp/" in amazon_url:
+            amazon_desc = self.scrape_amazon_description(amazon_url)
+            if amazon_desc:
+                print(f"Using Amazon description: {amazon_desc[:50]}...")
+                return amazon_desc
         
-        # Remove HTML tags and decode entities
-        import html
-        from bs4 import BeautifulSoup
+        # Fallback: Clean RSS description if available
+        if raw_description:
+            # Remove HTML tags and decode entities
+            import html
+            from bs4 import BeautifulSoup
+            
+            cleaned = html.unescape(raw_description)
+            soup = BeautifulSoup(cleaned, 'html.parser')
+            text = soup.get_text()
+            
+            # Remove unwanted phrases and artifacts
+            unwanted_phrases = [
+                "sells on Amazon. I think the price is very good.",
+                "Please read some of the reviews and see people thought of the product.",
+                "**If you're not sure whether to buy, add to cart, and you can come back to it later!**",
+                "The post", "appeared first on", "Savings Guru", "SavingsGuru",
+                "[…]", "&#8230;", "[read more]", "Continue reading",
+                "savingsguru.ca"
+            ]
+            
+            for phrase in unwanted_phrases:
+                text = text.replace(phrase, "")
+            
+            # Clean up extra whitespace and newlines
+            text = re.sub(r'\s+', ' ', text).strip()
+            
+            # If we have decent cleaned text, use it
+            if text and len(text) > 20:
+                return text[:150] + "..." if len(text) > 150 else text
         
-        cleaned = html.unescape(raw_description)
-        soup = BeautifulSoup(cleaned, 'html.parser')
-        text = soup.get_text()
-        
-        # Remove unwanted phrases and artifacts
-        unwanted_phrases = [
-            "sells on Amazon. I think the price is very good.",
-            "Please read some of the reviews and see people thought of the product.",
-            "**If you're not sure whether to buy, add to cart, and you can come back to it later!**",
-            "The post", "appeared first on", "Savings Guru", "SavingsGuru",
-            "[…]", "&#8230;", "[read more]", "Continue reading",
-            "savingsguru.ca"
-        ]
-        
-        for phrase in unwanted_phrases:
-            text = text.replace(phrase, "")
-        
-        # Clean up extra whitespace and newlines
-        text = re.sub(r'\s+', ' ', text).strip()
-        
-        # Always use our generated SEO descriptions instead of trying to parse RSS content
-        # The RSS content is often messy and inconsistent
+        # Final fallback: Generate SEO description
         return self.generate_seo_description(product_title)
     
     def generate_seo_description(self, product_title=""):
@@ -131,11 +140,12 @@ class SavingsGuruScraperEnv:
         deals = []
         
         for entry in feed.entries[:100]:  # Get latest 100 entries
+            # We'll get the Amazon URL during processing, so just store raw description for now
             deal = {
                 'title': entry.title,
                 'link': entry.link,
                 'published': entry.published,
-                'description': self.clean_description(entry.get('summary', ''), entry.title),
+                'raw_description': entry.get('summary', ''),  # Store raw for later processing
                 'status': 'approved'  # Auto-approved since already vetted on original site
             }
             deals.append(deal)
@@ -266,6 +276,91 @@ class SavingsGuruScraperEnv:
             discount = 25  # Default discount
             
         return round(current_price, 2), round(original_price, 2), discount
+    
+    def scrape_amazon_description(self, amazon_url):
+        """Scrape product description from Amazon for SEO gold"""
+        try:
+            from bs4 import BeautifulSoup
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept-Language': 'en-CA,en;q=0.9',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            }
+            
+            response = requests.get(amazon_url, headers=headers, timeout=15)
+            if response.status_code != 200:
+                return None
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Try to extract title and basic info for products without feature bullets
+            title_elem = soup.select_one('#productTitle')
+            product_title = title_elem.get_text().strip() if title_elem else ""
+            
+            # Try multiple description selectors in order of preference
+            description_approaches = [
+                # Approach 1: Feature bullets with colons (detailed descriptions)
+                {
+                    'selectors': ['#feature-bullets ul li span.a-list-item', '[data-feature-name="featurebullets"] ul li span'],
+                    'requires_colon': True,
+                    'min_length': 20
+                },
+                # Approach 2: Product description paragraphs
+                {
+                    'selectors': ['#productDescription p', '#aplus_feature_div p'],
+                    'requires_colon': False,
+                    'min_length': 30
+                },
+                # Approach 3: Any feature bullets (less strict)
+                {
+                    'selectors': ['#feature-bullets .a-list-item', '.a-unordered-list.a-nostyle.a-vertical li span'],
+                    'requires_colon': False,
+                    'min_length': 15
+                }
+            ]
+            
+            for approach in description_approaches:
+                for selector in approach['selectors']:
+                    elements = soup.select(selector)
+                    if elements:
+                        descriptions = []
+                        for elem in elements[:3]:  # Take first 3 elements
+                            text = elem.get_text().strip()
+                            text = ' '.join(text.split())  # Clean whitespace
+                            
+                            skip_phrases = ['make sure', 'please note', 'important', 'clothing, shoes & accessories', 
+                                          'home & kitchen', 'sports & outdoors', 'health & personal care',
+                                          'date first available', 'best sellers rank', 'customer reviews']
+                            
+                            colon_check = ':' in text if approach['requires_colon'] else True
+                            
+                            if (text and len(text) > approach['min_length'] and len(text) < 300 and 
+                                not any(skip in text.lower() for skip in skip_phrases) and
+                                colon_check and not text.startswith('•') and not text.startswith('-')):
+                                descriptions.append(text)
+                        
+                        if descriptions:
+                            # Join descriptions, limit to ~150 chars for cards
+                            combined = '. '.join(descriptions)
+                            if len(combined) > 150:
+                                combined = combined[:147] + "..."
+                            print(f"Extracted Amazon description: {combined[:50]}...")
+                            return combined
+            
+            # Fallback: Use product title with a generic description if we can't find anything
+            if product_title and len(product_title) > 10:
+                fallback = f"{product_title[:100]}... - High quality product with great value"
+                if len(fallback) > 150:
+                    fallback = fallback[:147] + "..."
+                print(f"Using title fallback: {fallback[:50]}...")
+                return fallback
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error scraping Amazon description: {e}")
+            return None
     
     def scrape_amazon_discount(self, amazon_url):
         """Scrape discount percentage from Amazon product page for sale tags"""
@@ -404,6 +499,9 @@ class SavingsGuruScraperEnv:
                     original_price = 0
                     discount = 0
                 
+                # Get SEO-friendly description using Amazon URL (the SEO gold!)
+                seo_description = self.clean_description(deal['raw_description'], deal['title'], amazon_url)
+                
                 # Prepare row data
                 row_data = [
                     deal_id,
@@ -414,7 +512,7 @@ class SavingsGuruScraperEnv:
                     original_price,
                     discount,
                     product_image or '/placeholder-deal.svg',  # Use real product image from RSS post
-                    deal['description'],  # SEO-friendly description already optimized
+                    seo_description,  # Real Amazon description - SEO gold!
                     'General',  # Category
                     'approved',  # Status - auto-approved
                     datetime.now().strftime('%Y-%m-%d'),
