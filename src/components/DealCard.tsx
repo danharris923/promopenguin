@@ -39,9 +39,6 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
           </div>
         )}
         
-        <div className="absolute top-2 right-2 bg-white/90 text-text-dark px-2 py-1 rounded text-xs z-10">
-          {deal.category}
-        </div>
         
         <div className={`relative ${isLarge ? 'h-64' : 'h-48'} overflow-hidden`}>
           <img 
