@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import HomePage from './components/HomePage';
@@ -6,19 +6,22 @@ import AboutPage from './components/AboutPage';
 import CouponsPage from './components/CouponsPage';
 
 function App() {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        <Header onSearch={handleSearch} />
         
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/deals" element={<HomePage />} />
+          <Route path="/" element={<HomePage searchQuery={searchQuery} />} />
+          <Route path="/deals" element={<HomePage searchQuery={searchQuery} />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/coupons" element={<CouponsPage />} />
-          <Route path="/amazon" element={<HomePage />} />
-          <Route path="/faq" element={<HomePage />} />
-          <Route path="/discounts" element={<HomePage />} />
+          <Route path="/amazon" element={<HomePage searchQuery={searchQuery} />} />
         </Routes>
         
         <footer className="bg-white border-t mt-12">

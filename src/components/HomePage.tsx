@@ -7,12 +7,22 @@ import Sidebar from './Sidebar';
 import { Deal } from '../types/Deal';
 import { useIsMobile } from '../utils/useIsMobile';
 
-const HomePage: React.FC = () => {
+interface HomePageProps {
+  onSearch?: (query: string) => void;
+  searchQuery?: string;
+}
+
+const HomePage: React.FC<HomePageProps> = ({ searchQuery: propSearchQuery = '' }) => {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState(propSearchQuery);
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    setSearchQuery(propSearchQuery);
+  }, [propSearchQuery]);
 
   useEffect(() => {
     fetch('/deals.json')
@@ -37,12 +47,20 @@ const HomePage: React.FC = () => {
     setTimeout(() => setSelectedDeal(null), 300);
   };
 
-  const topDeals = deals
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const filteredDeals = deals.filter(deal => 
+    deal.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const topDeals = filteredDeals
     .filter(deal => deal.featured)
     .sort((a, b) => b.discountPercent - a.discountPercent)
     .slice(0, 5);
 
-  const mainDeals = deals.sort((a, b) => 
+  const mainDeals = filteredDeals.sort((a, b) => 
     new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
   );
 
@@ -52,8 +70,15 @@ const HomePage: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-text-dark mb-1">Latest Deals</h2>
-              <p className="text-gray-600">Discover amazing savings on top products</p>
+              <h2 className="text-2xl font-bold text-text-dark mb-1">
+                {searchQuery ? `Search Results for "${searchQuery}"` : 'Latest Deals'}
+              </h2>
+              <p className="text-gray-600">
+                {searchQuery 
+                  ? `Found ${mainDeals.length} deals matching your search`
+                  : 'Discover amazing savings on top products'
+                }
+              </p>
             </div>
             
             {loading ? (

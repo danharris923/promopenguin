@@ -48,7 +48,7 @@ const AboutPage: React.FC = () => {
                 exclusive offers you won't find anywhere else.
               </p>
               <p className="text-gray-700 mb-4 leading-relaxed">
-                From coast to coast, over <strong>2 million Canadian shoppers</strong> trust us to find them incredible 
+                From coast to coast, over <strong>1 million Canadian shoppers</strong> trust us to find them incredible 
                 savings every single day. Whether you're shopping for electronics, fashion, home goods, or everyday essentials, 
                 we've got the deals that matter most to your wallet.
               </p>
@@ -160,15 +160,15 @@ const AboutPage: React.FC = () => {
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary-green mb-2">2M+</div>
+              <div className="text-4xl font-bold text-primary-green mb-2">1M+</div>
               <div className="text-gray-600">Happy Canadians</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary-green mb-2">$50M+</div>
+              <div className="text-4xl font-bold text-primary-green mb-2">$20M+</div>
               <div className="text-gray-600">Total Savings</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary-green mb-2">500+</div>
+              <div className="text-4xl font-bold text-primary-green mb-2">100+</div>
               <div className="text-gray-600">Daily New Deals</div>
             </div>
             <div className="text-center">

@@ -5,14 +5,20 @@ export interface DealLabelResult {
 }
 
 export function getSmartDealLabel(originalPrice: number, currentPrice: number, realDiscountPercent?: number): DealLabelResult {
-  // Use real Amazon discount percentage if available, otherwise calculate from prices
-  const percent = realDiscountPercent && realDiscountPercent > 0 ? realDiscountPercent : Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
-  
-  // Only show red percentage tags for deals over 20% off
-  if (percent >= 20) {
+  // Only use scraped discount data - no calculations
+  if (!realDiscountPercent || realDiscountPercent <= 0) {
     return {
-      primary: `${percent}% OFF`,
-      secondary: undefined, // Remove savings calculations
+      primary: "",
+      secondary: undefined,
+      showPercent: false
+    };
+  }
+  
+  // Only show red percentage tags for deals with scraped discount over 20%
+  if (realDiscountPercent >= 20) {
+    return {
+      primary: `${realDiscountPercent}% OFF`,
+      secondary: undefined,
       showPercent: true
     };
   } else {
@@ -26,9 +32,8 @@ export function getSmartDealLabel(originalPrice: number, currentPrice: number, r
 }
 
 export function getPriceDisplay(originalPrice: number, currentPrice: number, realDiscountPercent?: number) {
-  const savings = originalPrice - currentPrice;
-  
-  if (savings <= 0) {
+  // Only use scraped discount data - no price calculations
+  if (!realDiscountPercent || realDiscountPercent <= 0) {
     return {
       current: `$${currentPrice.toFixed(2)}`,
       original: null,

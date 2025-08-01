@@ -78,15 +78,15 @@ const Sidebar: React.FC<SidebarProps> = ({ topDeals, onDealClick }) => {
         <div className="mt-6 pt-4 border-t">
           <h3 className="font-semibold text-text-dark mb-3">Latest News</h3>
           <div className="space-y-3 text-sm">
-            <a href="#" className="block hover:text-primary-green">
+            <a href="https://amzn.to/3IWEXO0" className="block hover:text-primary-green">
               <p className="font-medium line-clamp-2">New Amazon Prime Day Deals Coming Soon</p>
               <p className="text-xs text-gray-500 mt-1">2 hours ago</p>
             </a>
-            <a href="#" className="block hover:text-primary-green">
+            <a href="https://amzn.to/41gQZYM" className="block hover:text-primary-green">
               <p className="font-medium line-clamp-2">Best Back-to-School Savings This Week</p>
               <p className="text-xs text-gray-500 mt-1">5 hours ago</p>
             </a>
-            <a href="#" className="block hover:text-primary-green">
+            <a href="https://amzn.to/4mlLZds" className="block hover:text-primary-green">
               <p className="font-medium line-clamp-2">Flash Sale: 50% Off Electronics Today Only</p>
               <p className="text-xs text-gray-500 mt-1">1 day ago</p>
             </a>
