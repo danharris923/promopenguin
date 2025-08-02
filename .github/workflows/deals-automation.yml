@@ -1,0 +1,54 @@
+name: Deals Automation
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Run every hour
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  update-deals:
+    runs-on: ubuntu-latest
+    environment: Production - savingsguru
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.PAT_TOKEN }}
+        ref: main
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd scraper
+        pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+    
+    - name: Run scraper
+      env:
+        GOOGLE_SHEETS_CREDS: ${{ secrets.GOOGLE_SHEETS_CREDS }}
+        SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      run: |
+        cd scraper
+        python scraper_env.py
+    
+    - name: Generate deals.json
+      env:
+        GOOGLE_SHEETS_CREDS: ${{ secrets.GOOGLE_SHEETS_CREDS }}
+        SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      run: |
+        cd scraper
+        python -c "from scraper_env import SavingsGuruScraperEnv; scraper = SavingsGuruScraperEnv(); scraper.generate_deals_json()"
+    
+    - name: Deploy to Vercel
+      run: |
+        curl -X POST "https://api.vercel.com/v1/integrations/deploy/prj_${{ secrets.VERCEL_PROJECT_ID }}/savingsguru-modern" \
+             -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}"
+        echo "Deployment triggered successfully"
