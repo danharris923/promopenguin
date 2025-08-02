@@ -1,4 +1,4 @@
-name: Update Deals
+name: Update Deals v2
 
 on:
   schedule:
