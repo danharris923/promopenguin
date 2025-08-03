@@ -58,17 +58,23 @@ class SimpleScraper:
     def extract_featured_image_from_api(self, post_data):
         """Extract featured image from WordPress REST API response"""
         try:
-            # Check for embedded featured media
+            # Check for embedded featured media (when using _embed parameter)
             if '_embedded' in post_data and 'wp:featuredmedia' in post_data['_embedded']:
-                featured_media = post_data['_embedded']['wp:featuredmedia'][0]
-                if 'source_url' in featured_media:
-                    return featured_media['source_url']
+                featured_media = post_data['_embedded']['wp:featuredmedia']
+                if featured_media and len(featured_media) > 0:
+                    media_item = featured_media[0]
+                    if 'source_url' in media_item:
+                        print(f"  📷 Got featured image from API")
+                        return media_item['source_url']
             
-            # Fallback: check featured_media ID and fetch it
-            if 'featured_media' in post_data and post_data['featured_media']:
-                media_id = post_data['featured_media']
-                # We could fetch the media endpoint, but let's try content scraping first
-                
+            # Fallback: Check Yoast SEO data for og:image
+            if 'yoast_head_json' in post_data and 'og_image' in post_data['yoast_head_json']:
+                og_images = post_data['yoast_head_json']['og_image']
+                if og_images and len(og_images) > 0:
+                    if 'url' in og_images[0]:
+                        print(f"  📷 Got image from Yoast SEO")
+                        return og_images[0]['url']
+            
             return None
         except Exception as e:
             print(f"Error extracting featured image from API: {e}")
