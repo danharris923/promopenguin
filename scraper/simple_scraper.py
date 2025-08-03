@@ -112,23 +112,44 @@ class SimpleScraper:
         ]
         return random.choice(templates)
     
-    def fetch_wordpress_posts(self, base_url="https://www.savingsguru.ca", limit=100):
-        """Fetch posts using WordPress REST API to get more than RSS limit"""
+    def fetch_wordpress_posts(self, base_url="https://www.savingsguru.ca", limit=500):
+        """Fetch posts using WordPress REST API with pagination for 500+ posts"""
+        all_posts = []
+        page = 1
+        per_page = 100  # WordPress API max per request
+        
         try:
-            # WordPress REST API endpoint
-            api_url = f"{base_url}/wp-json/wp/v2/posts"
-            params = {
-                'per_page': min(limit, 100),  # WordPress API max is 100 per request
-                'orderby': 'date',
-                'order': 'desc'
-            }
+            while len(all_posts) < limit:
+                api_url = f"{base_url}/wp-json/wp/v2/posts"
+                params = {
+                    'per_page': per_page,
+                    'page': page,
+                    'orderby': 'date',
+                    'order': 'desc'
+                }
+                
+                print(f"Fetching page {page} of posts...")
+                response = requests.get(api_url, params=params, timeout=15)
+                
+                if response.status_code == 200:
+                    posts = response.json()
+                    if not posts:  # No more posts
+                        break
+                    
+                    all_posts.extend(posts)
+                    print(f"Got {len(posts)} posts, total: {len(all_posts)}")
+                    
+                    if len(posts) < per_page:  # Last page
+                        break
+                    
+                    page += 1
+                    time.sleep(0.5)  # Be nice to the API
+                else:
+                    print(f"WordPress API page {page} failed: {response.status_code}")
+                    break
             
-            response = requests.get(api_url, params=params, timeout=15)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                print(f"WordPress API failed, falling back to RSS")
-                return None
+            return all_posts[:limit]  # Return up to the limit
+            
         except Exception as e:
             print(f"WordPress API error: {e}, falling back to RSS")
             return None
@@ -233,7 +254,7 @@ class SimpleScraper:
         
         return deals
     
-    def parse_rss_and_generate_json(self, feed_url="https://www.savingsguru.ca/feed/", limit=100):
+    def parse_rss_and_generate_json(self, feed_url="https://www.savingsguru.ca/feed/", limit=500):
         """Use WordPress REST API to get more posts than RSS limit"""
         print(f"Fetching posts via WordPress REST API...")
         
@@ -363,7 +384,7 @@ class SimpleScraper:
 
 def main():
     scraper = SimpleScraper()
-    scraper.parse_rss_and_generate_json(limit=100)
+    scraper.parse_rss_and_generate_json(limit=500)
 
 if __name__ == "__main__":
     main()
