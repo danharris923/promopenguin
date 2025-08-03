@@ -259,6 +259,16 @@ class SimpleScraper:
                 amazon_url = self.extract_amazon_link(post_url)
                 product_image = self.extract_product_image(post_url)
                 
+                # SAFETY CHECK: Only include deals with valid Amazon affiliate links
+                if not amazon_url or 'amazon' not in amazon_url.lower() or 'savingsgurucc-20' not in amazon_url:
+                    print(f"⚠️  SKIPPING: No valid Amazon affiliate link found for '{title[:30]}...'")
+                    continue
+                
+                # SAFETY CHECK: Never use source URLs as affiliate links
+                if amazon_url and ('savingsguru.ca' in amazon_url or post_url in amazon_url):
+                    print(f"⚠️  SKIPPING: Source URL detected as affiliate link for '{title[:30]}...'")
+                    continue
+                
                 # Generate pricing
                 current_price, original_price, discount = self.generate_price_and_discount(title)
                 
@@ -274,12 +284,13 @@ class SimpleScraper:
                     'discountPercent': discount,
                     'category': 'General',
                     'description': description,
-                    'affiliateUrl': amazon_url or post_url,
+                    'affiliateUrl': amazon_url,  # NEVER fallback to post_url
                     'featured': len(deals) < 5,  # First 5 are featured
                     'dateAdded': datetime.now().strftime('%Y-%m-%d')
                 }
                 
                 deals.append(deal)
+                print(f"✅ Added deal: {title[:30]}... -> {amazon_url[:50]}...")
                 time.sleep(0.2)  # Be nice to the server
         
         if len(deals) < 10:  # Fallback to RSS if REST API failed
@@ -301,6 +312,16 @@ class SimpleScraper:
                 amazon_url = self.extract_amazon_link(entry.link)
                 product_image = self.extract_product_image(entry.link)
                 
+                # SAFETY CHECK: Only include deals with valid Amazon affiliate links
+                if not amazon_url or 'amazon' not in amazon_url.lower() or 'savingsgurucc-20' not in amazon_url:
+                    print(f"⚠️  SKIPPING RSS: No valid Amazon affiliate link found for '{entry.title[:30]}...'")
+                    continue
+                
+                # SAFETY CHECK: Never use source URLs as affiliate links
+                if amazon_url and ('savingsguru.ca' in amazon_url or entry.link in amazon_url):
+                    print(f"⚠️  SKIPPING RSS: Source URL detected as affiliate link for '{entry.title[:30]}...'")
+                    continue
+                
                 # Generate pricing
                 current_price, original_price, discount = self.generate_price_and_discount(entry.title)
                 
@@ -316,12 +337,13 @@ class SimpleScraper:
                     'discountPercent': discount,
                     'category': 'General',
                     'description': description,
-                    'affiliateUrl': amazon_url or entry.link,
+                    'affiliateUrl': amazon_url,  # NEVER fallback to entry.link
                     'featured': count < 5,  # First 5 are featured
                     'dateAdded': datetime.now().strftime('%Y-%m-%d')
                 }
                 
                 deals.append(deal)
+                print(f"✅ Added RSS deal: {entry.title[:30]}... -> {amazon_url[:50]}...")
                 count += 1
                 time.sleep(0.5)  # Be nice to the server
         
