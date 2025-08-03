@@ -112,49 +112,218 @@ class SimpleScraper:
         ]
         return random.choice(templates)
     
-    def parse_rss_and_generate_json(self, feed_url="https://www.savingsguru.ca/feed/", limit=100):
-        """Parse RSS feed and generate deals.json directly"""
-        print(f"Fetching RSS feed from {feed_url}...")
-        feed = feedparser.parse(feed_url)
-        deals = []
-        
-        count = 0
-        for entry in feed.entries:
-            if count >= limit:
-                break
-                
-            print(f"Processing: {entry.title[:50]}...")
-            
-            # Create unique ID
-            deal_id = re.sub(r'[^a-zA-Z0-9]', '', entry.title.lower())[:20]
-            
-            # Extract Amazon link and image
-            amazon_url = self.extract_amazon_link(entry.link)
-            product_image = self.extract_product_image(entry.link)
-            
-            # Generate pricing
-            current_price, original_price, discount = self.generate_price_and_discount(entry.title)
-            
-            # Generate description
-            description = self.generate_description(entry.title)
-            
-            deal = {
-                'id': deal_id,
-                'title': entry.title,
-                'imageUrl': product_image or '/placeholder-deal.svg',
-                'price': current_price,
-                'originalPrice': original_price,
-                'discountPercent': discount,
-                'category': 'General',
-                'description': description,
-                'affiliateUrl': amazon_url or entry.link,
-                'featured': count < 5,  # First 5 are featured
-                'dateAdded': datetime.now().strftime('%Y-%m-%d')
+    def fetch_wordpress_posts(self, base_url="https://www.savingsguru.ca", limit=100):
+        """Fetch posts using WordPress REST API to get more than RSS limit"""
+        try:
+            # WordPress REST API endpoint
+            api_url = f"{base_url}/wp-json/wp/v2/posts"
+            params = {
+                'per_page': min(limit, 100),  # WordPress API max is 100 per request
+                'orderby': 'date',
+                'order': 'desc'
             }
             
-            deals.append(deal)
-            count += 1
-            time.sleep(0.5)  # Be nice to the server
+            response = requests.get(api_url, params=params, timeout=15)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"WordPress API failed, falling back to RSS")
+                return None
+        except Exception as e:
+            print(f"WordPress API error: {e}, falling back to RSS")
+            return None
+    
+    def scrape_deals_from_wordpress(self, limit=100):
+        """Scrape deals directly from WordPress site using Beautiful Soup"""
+        print(f"Scraping deals from WordPress site...")
+        
+        deals = []
+        page = 1
+        per_page = 20  # Posts per page on the site
+        
+        while len(deals) < limit:
+            # Try different URL patterns to get more posts
+            urls_to_try = [
+                f"https://www.savingsguru.ca/page/{page}/",
+                f"https://www.savingsguru.ca/category/amazon/page/{page}/",
+            ]
+            
+            found_posts = False
+            for url in urls_to_try:
+                try:
+                    print(f"Checking page {page}: {url}")
+                    response = requests.get(url, timeout=15)
+                    if response.status_code != 200:
+                        continue
+                    
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                    
+                    # Look for post links
+                    post_links = soup.find_all('a', href=True)
+                    post_urls = []
+                    
+                    for link in post_links:
+                        href = link['href']
+                        # Match post pattern: /YYYY/MM/DD/post-name/
+                        if re.match(r'https://www\.savingsguru\.ca/\d{4}/\d{2}/\d{2}/.+/', href):
+                            if href not in [deal.get('source_url') for deal in deals]:
+                                post_urls.append(href)
+                    
+                    if post_urls:
+                        found_posts = True
+                        print(f"Found {len(post_urls)} posts on page {page}")
+                        
+                        for post_url in post_urls[:limit - len(deals)]:
+                            if len(deals) >= limit:
+                                break
+                                
+                            # Extract post title from URL
+                            title_match = re.search(r'/([^/]+)/$', post_url)
+                            if title_match:
+                                title = title_match.group(1).replace('-', ' ').title()
+                            else:
+                                title = f"Deal {len(deals) + 1}"
+                            
+                            print(f"Processing: {title[:50]}...")
+                            
+                            # Create unique ID
+                            deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
+                            
+                            # Extract Amazon link and image
+                            amazon_url = self.extract_amazon_link(post_url)
+                            product_image = self.extract_product_image(post_url)
+                            
+                            # Generate pricing
+                            current_price, original_price, discount = self.generate_price_and_discount(title)
+                            
+                            # Generate description
+                            description = self.generate_description(title)
+                            
+                            deal = {
+                                'id': deal_id,
+                                'title': title,
+                                'imageUrl': product_image or '/placeholder-deal.svg',
+                                'price': current_price,
+                                'originalPrice': original_price,
+                                'discountPercent': discount,
+                                'category': 'General',
+                                'description': description,
+                                'affiliateUrl': amazon_url or post_url,
+                                'featured': len(deals) < 5,  # First 5 are featured
+                                'dateAdded': datetime.now().strftime('%Y-%m-%d'),
+                                'source_url': post_url
+                            }
+                            
+                            deals.append(deal)
+                            time.sleep(0.3)  # Be nice to the server
+                        
+                        break  # Found posts, no need to try other URLs
+                
+                except Exception as e:
+                    print(f"Error scraping page {page}: {e}")
+                    continue
+            
+            if not found_posts:
+                print(f"No more posts found after page {page}")
+                break
+                
+            page += 1
+            if page > 10:  # Safety limit
+                break
+        
+        return deals
+    
+    def parse_rss_and_generate_json(self, feed_url="https://www.savingsguru.ca/feed/", limit=100):
+        """Use WordPress REST API to get more posts than RSS limit"""
+        print(f"Fetching posts via WordPress REST API...")
+        
+        # Try WordPress REST API first
+        wp_posts = self.fetch_wordpress_posts(limit=limit)
+        deals = []
+        
+        if wp_posts:
+            print(f"Found {len(wp_posts)} posts via REST API")
+            for i, post in enumerate(wp_posts):
+                if len(deals) >= limit:
+                    break
+                    
+                title = post.get('title', {}).get('rendered', f'Deal {i+1}')
+                post_url = post.get('link', '')
+                
+                print(f"Processing: {title[:50]}...")
+                
+                # Create unique ID
+                deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
+                
+                # Extract Amazon link and image
+                amazon_url = self.extract_amazon_link(post_url)
+                product_image = self.extract_product_image(post_url)
+                
+                # Generate pricing
+                current_price, original_price, discount = self.generate_price_and_discount(title)
+                
+                # Generate description
+                description = self.generate_description(title)
+                
+                deal = {
+                    'id': deal_id,
+                    'title': title,
+                    'imageUrl': product_image or '/placeholder-deal.svg',
+                    'price': current_price,
+                    'originalPrice': original_price,
+                    'discountPercent': discount,
+                    'category': 'General',
+                    'description': description,
+                    'affiliateUrl': amazon_url or post_url,
+                    'featured': len(deals) < 5,  # First 5 are featured
+                    'dateAdded': datetime.now().strftime('%Y-%m-%d')
+                }
+                
+                deals.append(deal)
+                time.sleep(0.2)  # Be nice to the server
+        
+        if len(deals) < 10:  # Fallback to RSS if REST API failed
+            print(f"WordPress scraping got {len(deals)} deals, falling back to RSS...")
+            feed = feedparser.parse(feed_url)
+            deals = []
+            
+            count = 0
+            for entry in feed.entries:
+                if count >= limit:
+                    break
+                    
+                print(f"Processing: {entry.title[:50]}...")
+                
+                # Create unique ID
+                deal_id = re.sub(r'[^a-zA-Z0-9]', '', entry.title.lower())[:20]
+                
+                # Extract Amazon link and image
+                amazon_url = self.extract_amazon_link(entry.link)
+                product_image = self.extract_product_image(entry.link)
+                
+                # Generate pricing
+                current_price, original_price, discount = self.generate_price_and_discount(entry.title)
+                
+                # Generate description
+                description = self.generate_description(entry.title)
+                
+                deal = {
+                    'id': deal_id,
+                    'title': entry.title,
+                    'imageUrl': product_image or '/placeholder-deal.svg',
+                    'price': current_price,
+                    'originalPrice': original_price,
+                    'discountPercent': discount,
+                    'category': 'General',
+                    'description': description,
+                    'affiliateUrl': amazon_url or entry.link,
+                    'featured': count < 5,  # First 5 are featured
+                    'dateAdded': datetime.now().strftime('%Y-%m-%d')
+                }
+                
+                deals.append(deal)
+                count += 1
+                time.sleep(0.5)  # Be nice to the server
         
         # Write to deals.json
         output_path = '../public/deals.json'
