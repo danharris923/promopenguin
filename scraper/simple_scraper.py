@@ -55,6 +55,25 @@ class SimpleScraper:
         new_query = '&'.join([f"{k}={v[0]}" for k, v in params.items()])
         return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
     
+    def extract_featured_image_from_api(self, post_data):
+        """Extract featured image from WordPress REST API response"""
+        try:
+            # Check for embedded featured media
+            if '_embedded' in post_data and 'wp:featuredmedia' in post_data['_embedded']:
+                featured_media = post_data['_embedded']['wp:featuredmedia'][0]
+                if 'source_url' in featured_media:
+                    return featured_media['source_url']
+            
+            # Fallback: check featured_media ID and fetch it
+            if 'featured_media' in post_data and post_data['featured_media']:
+                media_id = post_data['featured_media']
+                # We could fetch the media endpoint, but let's try content scraping first
+                
+            return None
+        except Exception as e:
+            print(f"Error extracting featured image from API: {e}")
+            return None
+    
     def extract_product_image(self, deal_url):
         """Extract the main product image from SavingsGuru post"""
         try:
@@ -125,7 +144,8 @@ class SimpleScraper:
                     'per_page': per_page,
                     'page': page,
                     'orderby': 'date',
-                    'order': 'desc'
+                    'order': 'desc',
+                    '_embed': 'wp:featuredmedia'  # Include featured images in response
                 }
                 
                 print(f"Fetching page {page} of posts...")
@@ -276,9 +296,14 @@ class SimpleScraper:
                 # Create unique ID
                 deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
                 
-                # Extract Amazon link and image
+                # Extract Amazon link
                 amazon_url = self.extract_amazon_link(post_url)
-                product_image = self.extract_product_image(post_url)
+                
+                # Extract image - try API first, then scraping
+                product_image = self.extract_featured_image_from_api(post)
+                if not product_image:
+                    product_image = self.extract_product_image(post_url)
+                    print(f"  📷 Scraped image from post content")
                 
                 # SAFETY CHECK: Only include deals with valid affiliate links (Amazon or ShopStyle)
                 is_amazon = amazon_url and 'amazon' in amazon_url.lower() and 'savingsgurucc-20' in amazon_url
