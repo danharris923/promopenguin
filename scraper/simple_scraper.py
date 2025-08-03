@@ -259,9 +259,12 @@ class SimpleScraper:
                 amazon_url = self.extract_amazon_link(post_url)
                 product_image = self.extract_product_image(post_url)
                 
-                # SAFETY CHECK: Only include deals with valid Amazon affiliate links
-                if not amazon_url or 'amazon' not in amazon_url.lower() or 'savingsgurucc-20' not in amazon_url:
-                    print(f"⚠️  SKIPPING: No valid Amazon affiliate link found for '{title[:30]}...'")
+                # SAFETY CHECK: Only include deals with valid affiliate links (Amazon or ShopStyle)
+                is_amazon = amazon_url and 'amazon' in amazon_url.lower() and 'savingsgurucc-20' in amazon_url
+                is_shopstyle = amazon_url and 'shopstyle.it' in amazon_url.lower()
+                
+                if not amazon_url or not (is_amazon or is_shopstyle):
+                    print(f"⚠️  SKIPPING: No valid affiliate link found for '{title[:30]}...'")
                     continue
                 
                 # SAFETY CHECK: Never use source URLs as affiliate links
@@ -312,9 +315,12 @@ class SimpleScraper:
                 amazon_url = self.extract_amazon_link(entry.link)
                 product_image = self.extract_product_image(entry.link)
                 
-                # SAFETY CHECK: Only include deals with valid Amazon affiliate links
-                if not amazon_url or 'amazon' not in amazon_url.lower() or 'savingsgurucc-20' not in amazon_url:
-                    print(f"⚠️  SKIPPING RSS: No valid Amazon affiliate link found for '{entry.title[:30]}...'")
+                # SAFETY CHECK: Only include deals with valid affiliate links (Amazon or ShopStyle)
+                is_amazon = amazon_url and 'amazon' in amazon_url.lower() and 'savingsgurucc-20' in amazon_url
+                is_shopstyle = amazon_url and 'shopstyle.it' in amazon_url.lower()
+                
+                if not amazon_url or not (is_amazon or is_shopstyle):
+                    print(f"⚠️  SKIPPING RSS: No valid affiliate link found for '{entry.title[:30]}...'")
                     continue
                 
                 # SAFETY CHECK: Never use source URLs as affiliate links
