@@ -77,25 +77,10 @@ class SimpleScraper:
                     else:
                         return self.clean_and_add_affiliate_tag(href, 'amazon'), 'amazon'
                 
-                # Check for other affiliate/shortened links (bit.ly, etc.)
+                # Skip shortened links (bit.ly, etc.) - don't process these
                 elif any(x in href.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co']):
-                    print(f"  Found shortened link: {href}")
-                    try:
-                        redirect_response = requests.head(href, allow_redirects=True, timeout=10)
-                        final_url = redirect_response.url
-                        print(f"  Resolved to: {final_url}")
-                        # Skip if it resolves to unwanted domains
-                        if any(domain in final_url.lower() for domain in skip_domains):
-                            print(f"  Skipping resolved URL (unwanted domain)")
-                            continue
-                        # Check if final destination is Amazon
-                        if any(x in final_url.lower() for x in ['amazon.ca', 'amazon.com']):
-                            return self.clean_and_add_affiliate_tag(final_url, 'amazon'), 'amazon'
-                        else:
-                            return self.clean_affiliate_link(final_url), 'other'
-                    except Exception as e:
-                        print(f"  Error resolving {href}: {e}")
-                        continue
+                    print(f"  Skipping shortened link: {href}")
+                    continue
                 
                 # Any other merchant links - accept them all (clean and ready for future affiliate tags)
                 elif 'http' in href and '.' in href:
