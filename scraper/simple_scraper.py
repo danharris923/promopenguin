@@ -66,113 +66,115 @@ class SimpleScraper:
         
         return None, 'unknown'
     
-    def extract_affiliate_link(self, deal_url):
-        """Extract the main affiliate/deal link from SmartCanucks post"""
+    def extract_affiliate_link_with_playwright(self, deal_url):
+        """Use Playwright to extract JavaScript links from SmartCanucks posts"""
+        from playwright.sync_api import sync_playwright
+        
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-            response = requests.get(deal_url, headers=headers, timeout=10)
-            if response.status_code != 200:
-                return None, 'unknown'
+            print(f"  Using Playwright to load: {deal_url}")
             
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Debug: Check if we got blocked or got valid content
-            if response.status_code != 200:
-                print(f"  HTTP {response.status_code} - may be blocked")
-                return None, 'blocked'
-            
-            if 'blocked' in response.text.lower() or 'access denied' in response.text.lower():
-                print(f"  Content suggests we're blocked")
-                return None, 'blocked'
-            
-            # Look for all external links in the post content, prioritizing bottom links
-            content_area = soup.find('div', class_='entry-content') or soup.find('article') or soup
-            
-            # Debug: Check what content we actually got
-            if not content_area:
-                print(f"  No content area found - HTML structure may be different")
-                return None, 'no_content'
-            
-            all_links = content_area.find_all('a', href=True)
-            print(f"  Found {len(all_links)} total links in post")
-            
-            # Skip unwanted links (SmartCanucks, app stores, social media)
-            skip_domains = [
-                'smartcanucks.ca', 'apps.apple.com', 'play.google.com', 
-                'facebook.com', 'twitter.com', 'instagram.com', 'pinterest.com',
-                'hotcanadadeals.ca', 'flipp.com'
-            ]
-            
-            # Debug: Show first few links found
-            for i, a in enumerate(all_links[:5]):
-                print(f"  Link {i+1}: {a.get('href', 'NO_HREF')[:60]} - Text: {a.get_text()[:30]}")
-            
-            # Collect all merchant links (excluding unwanted domains)
-            merchant_links = []
-            
-            for a in all_links:
-                href = a['href']
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
                 
-                # Skip unwanted domains
-                if any(domain in href.lower() for domain in skip_domains):
-                    continue
+                # Navigate and wait for content to load
+                page.goto(deal_url, wait_until='networkidle')
+                
+                # Look for links in the content area
+                content_selector = '.entry-content, article, .post-content'
+                
+                # Get all links that have onclick handlers or href attributes
+                links = page.evaluate("""
+                    () => {
+                        const contentArea = document.querySelector('.entry-content, article, .post-content');
+                        if (!contentArea) return [];
+                        
+                        const links = [];
+                        const anchors = contentArea.querySelectorAll('a');
+                        
+                        anchors.forEach(a => {
+                            let url = null;
+                            let text = a.textContent.trim();
+                            
+                            // Check href first
+                            if (a.href && a.href.startsWith('http')) {
+                                url = a.href;
+                            }
+                            // Check onclick for JavaScript links
+                            else if (a.onclick) {
+                                const onclickStr = a.onclick.toString();
+                                const urlMatch = onclickStr.match(/https?:\/\/[^'")]+/);
+                                if (urlMatch) {
+                                    url = urlMatch[0];
+                                }
+                            }
+                            
+                            if (url && text) {
+                                links.push({ url, text });
+                            }
+                        });
+                        
+                        return links;
+                    }
+                """)
+                
+                browser.close()
+                
+                print(f"  Playwright found {len(links)} links")
+                
+                # Filter and select best link
+                skip_domains = [
+                    'smartcanucks.ca', 'apps.apple.com', 'play.google.com', 
+                    'facebook.com', 'twitter.com', 'instagram.com', 'pinterest.com',
+                    'hotcanadadeals.ca', 'flipp.com'
+                ]
+                
+                valid_links = []
+                for link in links:
+                    url = link['url']
+                    text = link['text']
                     
-                # Skip shortened links (bit.ly etc)
-                if any(x in href.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co']):
-                    continue
+                    # Skip unwanted domains
+                    if any(domain in url.lower() for domain in skip_domains):
+                        continue
                     
-                # Collect valid links - be more permissive
-                if 'http' in href and any(tld in href for tld in ['.com', '.ca', '.net', '.org']):
-                    # Parse URL to count path depth
-                    from urllib.parse import urlparse
-                    parsed = urlparse(href)
-                    path_segments = [p for p in parsed.path.split('/') if p]
+                    # Skip shortened links
+                    if any(x in url.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co']):
+                        continue
                     
-                    print(f"  Found valid link: {href} - Text: '{a.get_text()}'")
+                    print(f"  Valid link: {text[:30]} -> {url[:60]}")
                     
-                    merchant_links.append({
-                        'href': href,
-                        'text': a.get_text(),
-                        'path_depth': len(path_segments),
-                        'has_sale_text': any(keyword in a.get_text().lower() for keyword in 
-                                           ['sale', 'deal', 'promo', 'clearance', 'offer', 'save', 'discount', 'shop now'])
+                    # Calculate priority
+                    has_sale_text = any(keyword in text.lower() for keyword in 
+                                      ['sale', 'deal', 'promo', 'clearance', 'offer', 'save', 'discount', 'shop now'])
+                    path_depth = len([p for p in url.split('/')[3:] if p])  # Count path segments after domain
+                    
+                    valid_links.append({
+                        'url': url,
+                        'text': text,
+                        'has_sale_text': has_sale_text,
+                        'path_depth': path_depth
                     })
-            
-            # Find the best link - prefer deeper paths (specific sales) over root domains
-            # SmartCanucks pattern: golf.ca/tag vs golf.ca/summersale/tag
-            if merchant_links:
-                # Sort by: 1) has sale text, 2) path depth (deeper = more specific)
-                merchant_links.sort(key=lambda x: (x['has_sale_text'], x['path_depth']), reverse=True)
                 
-                best_link = merchant_links[0]
-                print(f"  Selected best link: {best_link['text'][:30]} -> {best_link['href'][:60]}")
-                
-                # Handle Amazon links
-                if any(x in best_link['href'].lower() for x in ['amzn.to/', 'amazon.ca', 'amazon.com']):
-                    if 'amzn.to/' in best_link['href']:
-                        try:
-                            redirect_response = requests.head(best_link['href'], allow_redirects=True, timeout=10)
-                            final_url = redirect_response.url
-                            return self.clean_and_add_affiliate_tag(final_url, 'amazon'), 'amazon'
-                        except:
-                            return self.clean_and_add_affiliate_tag(best_link['href'], 'amazon'), 'amazon'
+                if valid_links:
+                    # Sort by sale text and path depth
+                    valid_links.sort(key=lambda x: (x['has_sale_text'], x['path_depth']), reverse=True)
+                    best_link = valid_links[0]
+                    
+                    print(f"  Selected: {best_link['text'][:30]} -> {best_link['url']}")
+                    
+                    # Handle Amazon links
+                    if any(x in best_link['url'].lower() for x in ['amazon.ca', 'amazon.com']):
+                        return self.clean_and_add_affiliate_tag(best_link['url'], 'amazon'), 'amazon'
                     else:
-                        return self.clean_and_add_affiliate_tag(best_link['href'], 'amazon'), 'amazon'
+                        cleaned_url = self.clean_affiliate_link(best_link['url'])
+                        return cleaned_url, 'other' if cleaned_url else None, 'unknown'
                 
-                # Handle other merchant links
-                else:
-                    cleaned_url = self.clean_affiliate_link(best_link['href'])
-                    if cleaned_url:
-                        return cleaned_url, 'other'
-            
-            
-            return None, 'unknown'
-            
+                return None, 'unknown'
+                
         except Exception as e:
-            print(f"Error extracting affiliate link: {e}")
-            return None, 'unknown'
+            print(f"  Playwright error: {e}")
+            return None, 'error'
     
     def clean_and_add_affiliate_tag(self, amazon_url, platform='amazon'):
         """Clean existing affiliate tags and add our tag to Amazon URL"""
@@ -533,9 +535,13 @@ class SimpleScraper:
                 # Create unique ID
                 deal_id = re.sub(r'[^a-zA-Z0-9]', '', entry.title.lower())[:20]
                 
-                # SmartCanucks uses JavaScript links, so map from title instead
-                print(f"  Mapping merchant from title: {entry.title}")
-                affiliate_url, link_type = self.get_merchant_url_from_title(entry.title)
+                # SmartCanucks uses JavaScript links, use Playwright to extract them
+                affiliate_url, link_type = self.extract_affiliate_link_with_playwright(entry.link)
+                
+                # Fallback to title mapping if Playwright fails
+                if not affiliate_url:
+                    print(f"  Playwright failed, trying title mapping...")
+                    affiliate_url, link_type = self.get_merchant_url_from_title(entry.title)
                 
                 product_image = self.extract_product_image(entry.link)
                 
