@@ -56,6 +56,14 @@ class SimpleScraper:
             # Look for all external links in the post content, prioritizing bottom links
             content_area = soup.find('div', class_='entry-content') or soup.find('article') or soup
             
+            # Debug: Check what content we actually got
+            if not content_area:
+                print(f"  No content area found - HTML structure may be different")
+                return None, 'no_content'
+            
+            all_links = content_area.find_all('a', href=True)
+            print(f"  Found {len(all_links)} total links in post")
+            
             # Skip unwanted links (SmartCanucks, app stores, social media)
             skip_domains = [
                 'smartcanucks.ca', 'apps.apple.com', 'play.google.com', 
@@ -63,8 +71,9 @@ class SimpleScraper:
                 'hotcanadadeals.ca', 'flipp.com'
             ]
             
-            # Get all links and look for the best deal link
-            all_links = content_area.find_all('a', href=True)
+            # Debug: Show first few links found
+            for i, a in enumerate(all_links[:5]):
+                print(f"  Link {i+1}: {a.get('href', 'NO_HREF')[:60]} - Text: {a.get_text()[:30]}")
             
             # Collect all merchant links (excluding unwanted domains)
             merchant_links = []
