@@ -51,8 +51,48 @@ class SimpleScraper:
                 'hotcanadadeals.ca', 'flipp.com'
             ]
             
-            # Get all links, but search from bottom to top (reverse order)
+            # Get all links and look for the best deal link
             all_links = content_area.find_all('a', href=True)
+            
+            # First pass: look for links with deal/sale/promo keywords
+            for a in all_links:
+                href = a['href']
+                link_text = a.get_text().lower()
+                
+                # Skip unwanted domains
+                if any(domain in href.lower() for domain in skip_domains):
+                    continue
+                    
+                # Prioritize links with deal-related text
+                if any(keyword in link_text for keyword in ['sale', 'deal', 'promo', 'clearance', 'offer', 'save', 'discount', 'shop now', 'get it']):
+                    print(f"  Found deal link with text '{a.get_text()[:30]}': {href[:60]}...")
+                    
+                    # Check for Amazon links
+                    if any(x in href.lower() for x in ['amzn.to/', 'amazon.ca', 'amazon.com']):
+                        print(f"  Found Amazon deal link: {href}")
+                        if 'amzn.to/' in href:
+                            try:
+                                redirect_response = requests.head(href, allow_redirects=True, timeout=10)
+                                final_url = redirect_response.url
+                                return self.clean_and_add_affiliate_tag(final_url, 'amazon'), 'amazon'
+                            except:
+                                return self.clean_and_add_affiliate_tag(href, 'amazon'), 'amazon'
+                        else:
+                            return self.clean_and_add_affiliate_tag(href, 'amazon'), 'amazon'
+                    
+                    # Skip shortened links
+                    elif any(x in href.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co']):
+                        print(f"  Skipping shortened link: {href}")
+                        continue
+                    
+                    # Accept other merchant links with deal text
+                    elif 'http' in href and '.' in href:
+                        print(f"  Found merchant deal link: {href}")
+                        cleaned_url = self.clean_affiliate_link(href)
+                        if cleaned_url:
+                            return cleaned_url, 'other'
+            
+            # Second pass: if no deal-specific link found, look from bottom to top
             all_links.reverse()  # Start from bottom of post
             
             for a in all_links:
