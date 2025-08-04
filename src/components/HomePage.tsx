@@ -70,13 +70,13 @@ const HomePage: React.FC<HomePageProps> = ({ searchQuery: propSearchQuery = '' }
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-text-dark mb-1">
+              <h2 className="text-2xl font-bold text-penguin-white mb-1">
                 {searchQuery ? `Search Results for "${searchQuery}"` : 'Latest Deals'}
               </h2>
-              <p className="text-gray-600">
+              <p className="text-gray-400">
                 {searchQuery 
                   ? `Found ${mainDeals.length} deals matching your search`
-                  : 'Discover amazing savings on top products'
+                  : 'Discover amazing savings on the coolest products 🐧'
                 }
               </p>
             </div>
@@ -84,7 +84,7 @@ const HomePage: React.FC<HomePageProps> = ({ searchQuery: propSearchQuery = '' }
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-80 bg-gray-200 rounded-lg animate-pulse" />
+                  <div key={i} className="h-80 bg-penguin-dark-gray rounded-2xl animate-pulse" />
                 ))}
               </div>
             ) : (

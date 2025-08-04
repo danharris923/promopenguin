@@ -13,7 +13,7 @@ function App() {
   };
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-penguin-black">
         <Header onSearch={handleSearch} />
         
         <Routes>
@@ -24,15 +24,15 @@ function App() {
           <Route path="/amazon" element={<HomePage searchQuery={searchQuery} />} />
         </Routes>
         
-        <footer className="bg-white border-t mt-12">
+        <footer className="bg-penguin-charcoal border-t border-penguin-dark-gray mt-12">
           <div className="max-w-container mx-auto px-4 py-8">
             <div className="text-center">
-              <h3 className="text-xl font-bold text-text-dark mb-2">SavingsGuru</h3>
-              <p className="text-gray-600 mb-4">
-                The Savings Guru helps you save money by finding you coupons, deals, and the lowest prices EVER!
+              <h3 className="text-xl font-bold text-penguin-white mb-2">PromoPenguin</h3>
+              <p className="text-gray-400 mb-4">
+                Waddle your way to savings with the coolest deals in Canada! 🐧
               </p>
               <p className="text-sm text-gray-500">
-                © 2025 SavingsGuru. All deals are legendary deals.
+                © 2025 PromoPenguin. All deals are ice-cold fresh.
               </p>
             </div>
           </div>

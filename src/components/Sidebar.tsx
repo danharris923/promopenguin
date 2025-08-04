@@ -11,13 +11,13 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ topDeals, onDealClick }) => {
   return (
     <aside className="w-full lg:w-80">
-      <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="bg-penguin-charcoal rounded-2xl shadow-sm p-4">
         <div className="flex items-center mb-4">
-          <div className="bg-accent-yellow px-3 py-1 rounded flex items-center">
+          <div className="bg-penguin-ice-blue px-3 py-1 rounded-lg flex items-center">
             <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
-            <span className="font-bold text-text-dark">TOP DEALS</span>
+            <span className="font-bold text-penguin-black">TOP DEALS ❄️</span>
           </div>
         </div>
         
@@ -31,8 +31,8 @@ const Sidebar: React.FC<SidebarProps> = ({ topDeals, onDealClick }) => {
                 onClick={() => onDealClick(deal)}
                 className="cursor-pointer group"
               >
-                <div className="flex gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+                <div className="flex gap-3 p-3 rounded-lg hover:bg-penguin-dark-gray transition-colors">
+                  <div className="w-20 h-20 flex-shrink-0 bg-penguin-white rounded-lg overflow-hidden">
                     <img 
                       src={deal.imageUrl} 
                       alt={deal.title}
@@ -43,21 +43,21 @@ const Sidebar: React.FC<SidebarProps> = ({ topDeals, onDealClick }) => {
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm text-text-dark line-clamp-2 group-hover:text-primary-green">
+                    <h4 className="font-medium text-sm text-penguin-white line-clamp-2 group-hover:text-penguin-ice-blue">
                       {deal.title}
                     </h4>
                     {priceVisibility.showPrice ? (
                       <div className="mt-1">
                         <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-bold text-primary-green">{priceDisplay.current}</span>
+                          <span className="text-lg font-bold text-penguin-ice-blue">{priceDisplay.current}</span>
                           {priceDisplay.original && (
-                            <span className="text-xs text-gray-500 line-through">{priceDisplay.original}</span>
+                            <span className="text-xs text-gray-400 line-through">{priceDisplay.original}</span>
                           )}
                         </div>
                       </div>
                     ) : (
                       <div className="mt-1">
-                        <span className="text-xs text-primary-green font-bold bg-accent-yellow px-2 py-1 rounded">
+                        <span className="text-xs text-penguin-black font-bold bg-penguin-ice-blue px-2 py-1 rounded">
                           {priceVisibility.checkPriceMessage}
                         </span>
                       </div>
@@ -69,26 +69,26 @@ const Sidebar: React.FC<SidebarProps> = ({ topDeals, onDealClick }) => {
                     )}
                   </div>
                 </div>
-                {index < topDeals.length - 1 && <hr className="mt-2" />}
+                {index < topDeals.length - 1 && <hr className="mt-2 border-penguin-dark-gray" />}
               </div>
             );
           })}
         </div>
         
-        <div className="mt-6 pt-4 border-t">
-          <h3 className="font-semibold text-text-dark mb-3">Latest News</h3>
+        <div className="mt-6 pt-4 border-t border-penguin-dark-gray">
+          <h3 className="font-semibold text-penguin-white mb-3">Latest News 📰</h3>
           <div className="space-y-3 text-sm">
-            <a href="https://amzn.to/3IWEXO0" className="block hover:text-primary-green">
-              <p className="font-medium line-clamp-2">New Amazon Prime Day Deals Coming Soon</p>
-              <p className="text-xs text-gray-500 mt-1">2 hours ago</p>
+            <a href="https://amzn.to/3IWEXO0" className="block hover:text-penguin-ice-blue text-penguin-white">
+              <p className="font-medium line-clamp-2">Ice-Cold Amazon Prime Day Deals Coming Soon</p>
+              <p className="text-xs text-gray-400 mt-1">2 hours ago</p>
             </a>
-            <a href="https://amzn.to/41gQZYM" className="block hover:text-primary-green">
+            <a href="https://amzn.to/41gQZYM" className="block hover:text-penguin-ice-blue text-penguin-white">
               <p className="font-medium line-clamp-2">Best Back-to-School Savings This Week</p>
-              <p className="text-xs text-gray-500 mt-1">5 hours ago</p>
+              <p className="text-xs text-gray-400 mt-1">5 hours ago</p>
             </a>
-            <a href="https://amzn.to/4mlLZds" className="block hover:text-primary-green">
+            <a href="https://amzn.to/4mlLZds" className="block hover:text-penguin-ice-blue text-penguin-white">
               <p className="font-medium line-clamp-2">Flash Sale: 50% Off Electronics Today Only</p>
-              <p className="text-xs text-gray-500 mt-1">1 day ago</p>
+              <p className="text-xs text-gray-400 mt-1">1 day ago</p>
             </a>
           </div>
         </div>
