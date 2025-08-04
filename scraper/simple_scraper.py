@@ -280,7 +280,7 @@ class SimpleScraper:
         
         return deals
     
-    def parse_rss_and_generate_json(self, feed_url="https://www.savingsguru.ca/feed/", limit=500):
+    def parse_rss_and_generate_json(self, feed_url="https://www.savingsguru.ca/feed/", limit=200):
         """Use WordPress REST API to get more posts than RSS limit"""
         print(f"Fetching posts via WordPress REST API...")
         
@@ -415,7 +415,7 @@ class SimpleScraper:
 
 def main():
     scraper = SimpleScraper()
-    scraper.parse_rss_and_generate_json(limit=500)
+    scraper.parse_rss_and_generate_json(limit=200)
 
 if __name__ == "__main__":
     main()
