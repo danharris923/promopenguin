@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 import random
 import os
 from typing import List, Optional
-from pydantic import BaseModel, HttpUrl, validator, Field
+from pydantic import BaseModel, HttpUrl, field_validator, Field
 
 class Deal(BaseModel):
     """Pydantic model for deal validation"""
@@ -30,23 +30,23 @@ class Deal(BaseModel):
     featured: bool = Field(default=False, description="Whether deal is featured")
     dateAdded: str = Field(..., pattern=r'^\d{4}-\d{2}-\d{2}$', description="Date added (YYYY-MM-DD)")
     
-    @validator('originalPrice')
-    def original_price_must_be_higher(cls, v, values):
+    @field_validator('originalPrice')
+    def original_price_must_be_higher(cls, v, info):
         """Original price must be higher than current price"""
-        if 'price' in values and v <= values['price']:
+        if 'price' in info.data and v <= info.data['price']:
             raise ValueError('originalPrice must be higher than price')
         return v
     
-    @validator('discountPercent')
-    def discount_percent_must_match(cls, v, values):
+    @field_validator('discountPercent')
+    def discount_percent_must_match(cls, v, info):
         """Discount percentage must match the actual price difference"""
-        if 'price' in values and 'originalPrice' in values:
-            actual_discount = int(((values['originalPrice'] - values['price']) / values['originalPrice']) * 100)
+        if 'price' in info.data and 'originalPrice' in info.data:
+            actual_discount = int(((info.data['originalPrice'] - info.data['price']) / info.data['originalPrice']) * 100)
             if abs(v - actual_discount) > 2:  # Allow 2% tolerance for rounding
                 raise ValueError(f'discountPercent {v}% does not match calculated discount {actual_discount}%')
         return v
     
-    @validator('affiliateUrl')
+    @field_validator('affiliateUrl')
     def affiliate_url_must_be_valid(cls, v):
         """Affiliate URL must not link back to SmartCanucks"""
         url_str = str(v)
@@ -54,7 +54,7 @@ class Deal(BaseModel):
             raise ValueError('affiliateUrl cannot link back to SmartCanucks')
         return v
     
-    @validator('title')
+    @field_validator('title')
     def title_must_be_clean(cls, v):
         """Title must not contain suspicious content"""
         if any(word in v.lower() for word in ['error', 'failed', 'test', 'debug']):
@@ -65,7 +65,7 @@ class DealsCollection(BaseModel):
     """Collection of validated deals"""
     deals: List[Deal] = Field(..., min_items=1, max_items=200, description="List of deals")
     
-    @validator('deals')
+    @field_validator('deals')
     def deals_must_have_unique_ids(cls, v):
         """All deals must have unique IDs"""
         ids = [deal.id for deal in v]
@@ -101,6 +101,7 @@ class SimpleScraper:
             'jysk': 'https://jysk.ca/',
             'marks': 'https://marks.com/',
             'mark\'s': 'https://marks.com/',
+            'mark's': 'https://marks.com/',  # Handle different apostrophe types
             'golf town': 'https://golftowncanada.ca/',
             'knix': 'https://knix.ca/',
             'healthy planet': 'https://healthyplanet.ca/',
@@ -576,7 +577,10 @@ class SimpleScraper:
                     
                     # Validate with Pydantic
                     validated_deal = Deal(**deal_data)
-                    deals.append(validated_deal.dict())
+                    # Convert to dict and ensure affiliateUrl is string
+                    deal_dict = validated_deal.model_dump()
+                    deal_dict['affiliateUrl'] = str(deal_dict['affiliateUrl'])
+                    deals.append(deal_dict)
                     print(f"✅ Valid deal: {title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
                     
                 except ValueError as e:
@@ -648,7 +652,10 @@ class SimpleScraper:
                     
                     # Validate with Pydantic
                     validated_deal = Deal(**deal_data)
-                    deals.append(validated_deal.dict())
+                    # Convert to dict and ensure affiliateUrl is string
+                    deal_dict = validated_deal.model_dump()
+                    deal_dict['affiliateUrl'] = str(deal_dict['affiliateUrl'])
+                    deals.append(deal_dict)
                     print(f"✅ Valid RSS deal: {entry.title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
                     
                 except ValueError as e:
