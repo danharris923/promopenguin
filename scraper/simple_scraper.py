@@ -35,11 +35,23 @@ class SimpleScraper:
     def extract_affiliate_link(self, deal_url):
         """Extract the main affiliate/deal link from SmartCanucks post"""
         try:
-            response = requests.get(deal_url, timeout=10)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(deal_url, headers=headers, timeout=10)
             if response.status_code != 200:
                 return None, 'unknown'
             
             soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Debug: Check if we got blocked or got valid content
+            if response.status_code != 200:
+                print(f"  HTTP {response.status_code} - may be blocked")
+                return None, 'blocked'
+            
+            if 'blocked' in response.text.lower() or 'access denied' in response.text.lower():
+                print(f"  Content suggests we're blocked")
+                return None, 'blocked'
             
             # Look for all external links in the post content, prioritizing bottom links
             content_area = soup.find('div', class_='entry-content') or soup.find('article') or soup
@@ -190,7 +202,10 @@ class SimpleScraper:
     def extract_product_image(self, deal_url):
         """Extract the main product image from SmartCanucks post"""
         try:
-            response = requests.get(deal_url, timeout=10)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(deal_url, headers=headers, timeout=10)
             if response.status_code != 200:
                 return None
             
