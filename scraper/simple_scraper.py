@@ -542,13 +542,8 @@ class SimpleScraper:
                 # Create unique ID
                 deal_id = re.sub(r'[^a-zA-Z0-9]', '', entry.title.lower())[:20]
                 
-                # SmartCanucks uses JavaScript links, use Playwright to extract them
-                affiliate_url, link_type = self.extract_affiliate_link_with_playwright(entry.link)
-                
-                # Fallback to title mapping if Playwright fails
-                if not affiliate_url:
-                    print(f"  Playwright failed, trying title mapping...")
-                    affiliate_url, link_type = self.get_merchant_url_from_title(entry.title)
+                # SmartCanucks uses JavaScript links, use title mapping instead of heavy Playwright
+                affiliate_url, link_type = self.get_merchant_url_from_title(entry.title)
                 
                 product_image = self.extract_product_image(entry.link)
                 
