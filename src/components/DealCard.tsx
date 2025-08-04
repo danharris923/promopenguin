@@ -68,87 +68,79 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
   // Expanded overlay view - iPhone style (mobile only)
   if (isExpanded && window.innerWidth < 768) {
     return (
-      <>
-        {/* Background overlay - Only on desktop */}
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:block"
-          onClick={() => setIsExpanded(false)}
-        />
-        
-        {/* Expanded card - iPhone style full screen */}
-        <div 
-          className="fixed inset-0 z-50"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          <div className={`${bgColor} w-full h-full overflow-y-auto`}>
-            <div className="relative">
-              {/* iPhone style header with close and swipe indicator */}
-              <div className="flex justify-between items-center p-4 bg-white/95 backdrop-blur-sm">
-                <div className="flex items-center">
-                  <div className="w-1 h-6 bg-gray-300 rounded-full mr-3"></div>
-                  <span className="text-sm text-gray-500">Swipe from left edge to close</span>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 truncate flex-1 text-center mx-4">Deal Details</h3>
-                <button
-                  onClick={() => setIsExpanded(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+      <div 
+        className="fixed inset-0 z-50"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className={`${bgColor} w-full h-full overflow-y-auto`}>
+          <div className="relative">
+            {/* iPhone style header with close and swipe indicator */}
+            <div className="flex justify-between items-center p-4 bg-white/95 backdrop-blur-sm">
+              <div className="flex items-center">
+                <div className="w-1 h-6 bg-gray-300 rounded-full mr-3"></div>
+                <span className="text-sm text-gray-500">Swipe from left edge to close</span>
               </div>
-              
-              {/* Large image - iPhone style */}
-              <div className="relative bg-white">
-                {/* Discount badge overlay on image */}
-                {deal.discountPercent > 0 && (
-                  <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 md:px-4 md:py-2 rounded-full text-sm md:text-lg font-bold z-10 shadow-lg">
-                    {deal.discountPercent}% OFF
-                  </div>
-                )}
-                
-                <div className="h-80">
-                  <img 
-                    src={deal.imageUrl} 
-                    alt={deal.title}
-                    className="w-full h-full object-contain p-4"
-                    onError={handleImageError}
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
+              <h3 className="text-lg font-semibold text-gray-900 truncate flex-1 text-center mx-4">Deal Details</h3>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Large image - iPhone style */}
+            <div className="relative bg-white">
+              {/* Discount badge overlay on image */}
+              {deal.discountPercent > 0 && (
+                <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-10 shadow-lg">
+                  {deal.discountPercent}% OFF
                 </div>
-              </div>
+              )}
               
-              {/* Details section - iPhone style */}
-              <div className="bg-white flex-1 min-h-0">
-                <div className="p-4">
-                  <h2 className="text-xl font-bold text-text-dark mb-3">{deal.title}</h2>
-                  
-                  <p className="text-base text-gray-700 mb-4">{deal.description}</p>
-                  
-                  {/* Price section */}
-                  <div className="mb-6">
-                    <div className="flex items-baseline gap-2 mb-4">
-                      <p className="text-3xl font-bold text-primary-green">{priceDisplay.current}</p>
-                      {priceDisplay.original && (
-                        <p className="text-xl text-gray-500 line-through">{priceDisplay.original}</p>
-                      )}
-                    </div>
-                    
-                    {/* iPhone style action button */}
-                    <a
-                      href={deal.affiliateUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="block w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-semibold hover:bg-blue-600 transition-colors text-center shadow-sm"
-                    >
-                      Shop Now
-                    </a>
-                  </div>
+              <div className="h-80">
+                <img 
+                  src={deal.imageUrl} 
+                  alt={deal.title}
+                  className="w-full h-full object-contain p-4"
+                  onError={handleImageError}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            </div>
+            
+            {/* Details section - iPhone style */}
+            <div className="bg-white flex-1 min-h-0">
+              <div className="p-4">
+                <h2 className="text-xl font-bold text-text-dark mb-3">{deal.title}</h2>
                 
+                <p className="text-base text-gray-700 mb-4">{deal.description}</p>
+                
+                {/* Price section */}
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-2 mb-4">
+                    <p className="text-3xl font-bold text-primary-green">{priceDisplay.current}</p>
+                    {priceDisplay.original && (
+                      <p className="text-xl text-gray-500 line-through">{priceDisplay.original}</p>
+                    )}
+                  </div>
+                  
+                  {/* iPhone style action button */}
+                  <a
+                    href={deal.affiliateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="block w-full bg-blue-500 text-white py-4 rounded-xl text-lg font-semibold hover:bg-blue-600 transition-colors text-center shadow-sm"
+                  >
+                    Shop Now
+                  </a>
+                </div>
+              
                 {/* Additional details */}
                 <div className="border-t pt-4">
                   <div className="flex flex-wrap gap-2">
@@ -171,7 +163,7 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
             </div>
           </div>
         </div>
-      </>
+      </div>
     );
   }
   
