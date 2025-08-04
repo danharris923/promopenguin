@@ -21,10 +21,16 @@ class SimpleScraper:
         self.limit = int(os.getenv('DEAL_LIMIT', '10'))
         
         # Debug: Print the configuration being used
-        print(f"Using configuration:")
-        print(f"  Site URL: {self.base_url}")
-        print(f"  Affiliate Tag: {self.affiliate_tag}")
-        print(f"  Deal Limit: {self.limit}")
+        print(f"=== SCRAPER CONFIGURATION ===")
+        print(f"Site URL: {self.base_url}")
+        print(f"Affiliate Tag: {self.affiliate_tag}")
+        print(f"Deal Limit: {self.limit}")
+        print(f"Feed URL will be: {self.base_url}/feed/")
+        print(f"Environment variables:")
+        print(f"  SITE_URL = {os.getenv('SITE_URL', 'NOT SET')}")
+        print(f"  AFFILIATE_TAG = {os.getenv('AFFILIATE_TAG', 'NOT SET')}")
+        print(f"  DEAL_LIMIT = {os.getenv('DEAL_LIMIT', 'NOT SET')}")
+        print(f"=============================")
     
     def extract_affiliate_link(self, deal_url):
         """Extract the main affiliate/deal link from SmartCanucks post"""
