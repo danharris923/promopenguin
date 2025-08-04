@@ -523,9 +523,16 @@ class SimpleScraper:
             deals = []
             
             count = 0
+            batch_size = 10
+            
             for entry in feed.entries:
                 if count >= limit:
                     break
+                
+                # Sleep between batches to be respectful
+                if count > 0 and count % batch_size == 0:
+                    print(f"  Processed {count} deals, sleeping 3 seconds before next batch...")
+                    time.sleep(3)
                     
                 try:
                     print(f"Processing: {entry.title[:50]}...")
