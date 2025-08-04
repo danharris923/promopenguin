@@ -51,15 +51,15 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
   if (isExpanded && window.innerWidth < 768) {
     return (
       <>
-        {/* Backdrop */}
+        {/* Backdrop - More transparent to show background */}
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in duration-300"
+          className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-50 animate-in fade-in duration-300"
           onClick={() => setIsExpanded(false)}
         />
         
-        {/* Center Modal */}
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in slide-in-from-bottom-6 duration-300">
-          <div className={`${bgColor} w-full max-w-sm max-h-[85vh] rounded-2xl shadow-2xl overflow-hidden`}>
+        {/* Center Modal - More padding to show background */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-8 animate-in slide-in-from-bottom-6 duration-300">
+          <div className={`${bgColor} w-full max-w-xs max-h-[75vh] rounded-2xl shadow-2xl overflow-hidden`}>
             {/* Header */}
             <div className="relative bg-white/95 backdrop-blur-sm px-4 py-3 border-b border-gray-100">
               <button
