@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SavingsGuru Modern is a React-based affiliate deals website that displays curated deals from Google Sheets. The site features automated deal scraping, human review workflow, and static deployment on Vercel.
+PromoPenguin is a React-based affiliate deals website that displays curated deals from RSS feeds. The site features automated deal scraping, deal validation, and static deployment on Vercel.
 
 ## Common Development Commands
 
@@ -36,18 +36,8 @@ cd scraper
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Run the main scraper (requires environment variables)
-python scraper_env.py
-
-# Run automation script (fetches deals and updates Git)
-python automation.py
-
-# Run REST API scraper
-python rest_api_scraper.py
-
-# Run scraper with environment variables
-python run_scraper_with_env.py
-python run_with_env.py
+# Run the simple RSS scraper (no dependencies required)
+python simple_scraper.py
 ```
 
 ## Architecture Overview
@@ -55,7 +45,7 @@ python run_with_env.py
 ### Frontend Architecture
 - **React SPA** with TypeScript using Create React App
 - **State Management**: React hooks (useState, useEffect) - no external state management
-- **Styling**: Tailwind CSS with custom color scheme matching SavingsGuru.ca
+- **Styling**: Tailwind CSS with dark theme and ice blue accents
 - **Data Flow**: Fetches static `/public/deals.json` on load, displays in cards and modals
 - **Key Components**:
   - `App.tsx`: Main orchestrator, handles deal loading and modal state
@@ -65,19 +55,18 @@ python run_with_env.py
   - `Header.tsx`: Navigation and branding
 
 ### Backend Architecture
-- **Data Pipeline**: RSS → Python Scraper → Google Sheets → Human Review → deals.json → Vercel
-- **Scraper**: `savingsguru_scraper.py` fetches from SavingsGuru RSS, enriches data, writes to Google Sheets
-- **Automation**: `automation.py` reads approved deals from Sheets, generates deals.json, commits to Git
-- **Deal Management**: Google Sheets acts as CMS with pending/approved/rejected workflow
+- **Data Pipeline**: RSS → Python Scraper → deals.json → Vercel
+- **Scraper**: `simple_scraper.py` fetches from RSS feeds, enriches data, generates static JSON
+- **Automation**: Direct RSS-to-JSON conversion with automated Git commits
+- **Deal Management**: Automated scraping with built-in filtering and validation
 
 ### Key Data Flow
 1. Scraper runs (manually or via cron/GitHub Actions)
-2. New deals added to Google Sheets as "pending"
-3. Human reviews and approves deals in Sheets
-4. Automation script fetches approved deals
-5. Generates static `deals.json` file
-6. Git commit triggers Vercel deployment
-7. Site updates with new deals
+2. Fetches deals from RSS feed or WordPress REST API
+3. Validates affiliate links and extracts product data
+4. Generates static `deals.json` file with enriched data
+5. Git commit triggers Vercel deployment
+6. Site updates with new deals automatically
 
 ### Deal Data Structure
 ```typescript
@@ -98,7 +87,7 @@ interface Deal {
 
 ## Important Implementation Details
 
-- **Affiliate Links**: All Amazon links must use tag `savingsguru0a-20`
+- **Affiliate Links**: All Amazon links must use tag `promopenguin-20`
 - **Color Scheme**: Cards rotate through pink (#EAB2AB), blue (#93C4D8), yellow (#FCE3AB)
 - **Image Handling**: Placeholder SVG for missing images, lazy loading for performance
 - **Price Display**: Always show both current and original price with discount percentage
@@ -107,11 +96,11 @@ interface Deal {
 
 ## Environment Variables & Secrets
 
-### Required GitHub Secrets
-**IMPORTANT**: These secrets must be added to your GitHub repository settings (Settings → Secrets and variables → Actions) for the workflow to run:
+### Optional GitHub Secrets
+For customizing data sources, you can optionally add these secrets to your GitHub repository settings (Settings → Secrets and variables → Actions):
 
-- `GOOGLE_SHEETS_CREDS`: Service account JSON credentials for Google Sheets API (entire JSON file contents)
-- `SPREADSHEET_ID`: The ID of your Google Sheet containing deals
+- `FEED_URL`: RSS feed URL to scrape (defaults to current feed)
+- `WORDPRESS_BASE_URL`: WordPress site base URL for REST API access
 
 To add these secrets:
 1. Go to your GitHub repository
@@ -119,18 +108,7 @@ To add these secrets:
 3. Click "New repository secret"
 4. Add each secret with the exact names above
 
-#### Getting Google Sheets Credentials:
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing
-3. Enable Google Sheets API
-4. Create a Service Account (APIs & Services → Credentials → Create Credentials → Service Account)
-5. Download the JSON key file
-6. Copy the entire contents of the JSON file as the `GOOGLE_SHEETS_CREDS` secret
-7. Share your Google Sheet with the service account email (found in the JSON file)
-
-#### Finding your Spreadsheet ID:
-The spreadsheet ID is in the URL of your Google Sheet:
-`https://docs.google.com/spreadsheets/d/[SPREADSHEET_ID]/edit`
+The scraper works without any secrets using the default RSS feed configuration.
 
 ### Troubleshooting
 

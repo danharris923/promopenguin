@@ -12,48 +12,118 @@ from datetime import datetime
 import time
 from bs4 import BeautifulSoup
 import random
+import os
 
 class SimpleScraper:
     def __init__(self):
-        self.affiliate_tag = "savingsgurucc-20"
+        self.affiliate_tag = os.getenv('AFFILIATE_TAG', 'offgriddisc06-20')
+        self.base_url = os.getenv('SITE_URL', 'https://www.smartcanucks.ca')
+        self.limit = int(os.getenv('DEAL_LIMIT', '10'))
+        
+        # Debug: Print the configuration being used
+        print(f"Using configuration:")
+        print(f"  Site URL: {self.base_url}")
+        print(f"  Affiliate Tag: {self.affiliate_tag}")
+        print(f"  Deal Limit: {self.limit}")
     
-    def extract_amazon_link(self, deal_url):
-        """Extract real Amazon product link from SavingsGuru post"""
+    def extract_affiliate_link(self, deal_url):
+        """Extract the main affiliate/deal link from SmartCanucks post"""
         try:
             response = requests.get(deal_url, timeout=10)
             if response.status_code != 200:
-                return None
+                return None, 'unknown'
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Look for amzn.to short links
-            for a in soup.find_all('a', href=True):
-                href = a['href']
-                if 'amzn.to/' in href:
-                    redirect_response = requests.head(href, allow_redirects=True, timeout=10)
-                    final_url = redirect_response.url
-                    return self.add_affiliate_tag(final_url)
+            # Look for all external links in the post content
+            content_area = soup.find('div', class_='entry-content') or soup.find('article') or soup
             
-            # Fallback: direct Amazon URLs
-            for a in soup.find_all('a', href=True):
+            for a in content_area.find_all('a', href=True):
                 href = a['href']
-                if 'amazon' in href.lower() and ('/dp/' in href or '/gp/product/' in href):
-                    return self.add_affiliate_tag(href)
+                
+                # Skip unwanted links (SmartCanucks, app stores, social media)
+                skip_domains = [
+                    'smartcanucks.ca', 'apps.apple.com', 'play.google.com', 
+                    'facebook.com', 'twitter.com', 'instagram.com', 'pinterest.com',
+                    'hotcanadadeals.ca', 'flipp.com'
+                ]
+                if any(domain in href.lower() for domain in skip_domains):
+                    continue
                     
-            return None
+                # Check for Amazon links (amzn.to, amazon.ca, amazon.com)
+                if any(x in href.lower() for x in ['amzn.to/', 'amazon.ca', 'amazon.com']):
+                    if 'amzn.to/' in href:
+                        # Resolve shortened Amazon link
+                        redirect_response = requests.head(href, allow_redirects=True, timeout=10)
+                        final_url = redirect_response.url
+                        return self.clean_and_add_affiliate_tag(final_url, 'amazon'), 'amazon'
+                    else:
+                        return self.clean_and_add_affiliate_tag(href, 'amazon'), 'amazon'
+                
+                # Check for other affiliate/shortened links (bit.ly, etc.)
+                elif any(x in href.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly']):
+                    # Resolve shortened link to get the final destination
+                    try:
+                        redirect_response = requests.head(href, allow_redirects=True, timeout=10)
+                        final_url = redirect_response.url
+                        # Check if final destination is Amazon
+                        if any(x in final_url.lower() for x in ['amazon.ca', 'amazon.com']):
+                            return self.clean_and_add_affiliate_tag(final_url, 'amazon'), 'amazon'
+                        else:
+                            return self.clean_affiliate_link(final_url), 'other'
+                    except:
+                        # If we can't resolve, use the shortened link as-is
+                        return href, 'other'
+                
+                # Direct merchant links (non-Amazon)
+                elif any(x in href.lower() for x in ['.com', '.ca', '.net']) and 'http' in href:
+                    return self.clean_affiliate_link(href), 'other'
+            
+            return None, 'unknown'
             
         except Exception as e:
-            print(f"Error extracting Amazon link: {e}")
-            return None
+            print(f"Error extracting affiliate link: {e}")
+            return None, 'unknown'
     
-    def add_affiliate_tag(self, amazon_url):
-        """Add affiliate tag to Amazon URL"""
+    def clean_and_add_affiliate_tag(self, amazon_url, platform='amazon'):
+        """Clean existing affiliate tags and add our tag to Amazon URL"""
         parsed = urlparse(amazon_url)
         params = parse_qs(parsed.query)
-        params['tag'] = [self.affiliate_tag]
         
-        new_query = '&'.join([f"{k}={v[0]}" for k, v in params.items()])
-        return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
+        # Remove any existing affiliate tags
+        affiliate_params = ['tag', 'ref', 'ref_', 'linkCode', 'linkId', 'camp', 'creative', 'creativeASIN']
+        for param in affiliate_params:
+            if param in params:
+                del params[param]
+        
+        # Add our affiliate tag
+        if platform == 'amazon':
+            params['tag'] = [self.affiliate_tag]
+        
+        # Rebuild query string
+        if params:
+            new_query = '&'.join([f"{k}={v[0]}" for k, v in params.items()])
+            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
+        else:
+            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+    
+    def clean_affiliate_link(self, url):
+        """Clean affiliate parameters from non-Amazon URLs"""
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
+        
+        # Remove common affiliate parameters
+        affiliate_params = ['aff', 'affiliate', 'ref', 'referrer', 'source', 'utm_source', 'utm_medium', 'utm_campaign']
+        for param in affiliate_params:
+            if param in params:
+                del params[param]
+        
+        # Rebuild URL without affiliate params (ready for our future tags)
+        if params:
+            new_query = '&'.join([f"{k}={v[0]}" for k, v in params.items()])
+            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
+        else:
+            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
     
     def extract_featured_image_from_api(self, post_data):
         """Extract featured image from WordPress REST API response"""
@@ -81,7 +151,7 @@ class SimpleScraper:
             return None
     
     def extract_product_image(self, deal_url):
-        """Extract the main product image from SavingsGuru post"""
+        """Extract the main product image from SmartCanucks post"""
         try:
             response = requests.get(deal_url, timeout=10)
             if response.status_code != 200:
@@ -96,7 +166,7 @@ class SimpleScraper:
                 if img_url.startswith('//'):
                     img_url = 'https:' + img_url
                 elif img_url.startswith('/'):
-                    img_url = 'https://www.savingsguru.ca' + img_url
+                    img_url = 'https://www.smartcanucks.ca' + img_url
                 return img_url
             
             return None
@@ -137,8 +207,9 @@ class SimpleScraper:
         ]
         return random.choice(templates)
     
-    def fetch_wordpress_posts(self, base_url="https://www.savingsguru.ca", limit=500):
+    def fetch_wordpress_posts(self, base_url=None, limit=500):
         """Fetch posts using WordPress REST API with pagination for 500+ posts"""
+        base_url = base_url or self.base_url
         all_posts = []
         page = 1
         per_page = 100  # WordPress API max per request
@@ -191,8 +262,8 @@ class SimpleScraper:
         while len(deals) < limit:
             # Try different URL patterns to get more posts
             urls_to_try = [
-                f"https://www.savingsguru.ca/page/{page}/",
-                f"https://www.savingsguru.ca/category/amazon/page/{page}/",
+                f"https://www.smartcanucks.ca/page/{page}/",
+                f"https://www.smartcanucks.ca/category/amazon/page/{page}/",
             ]
             
             found_posts = False
@@ -212,7 +283,7 @@ class SimpleScraper:
                     for link in post_links:
                         href = link['href']
                         # Match post pattern: /YYYY/MM/DD/post-name/
-                        if re.match(r'https://www\.savingsguru\.ca/\d{4}/\d{2}/\d{2}/.+/', href):
+                        if re.match(r'https://www\.smartcanucks\.ca/\d{4}/\d{2}/\d{2}/.+/', href):
                             if href not in [deal.get('source_url') for deal in deals]:
                                 post_urls.append(href)
                     
@@ -237,7 +308,7 @@ class SimpleScraper:
                             deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
                             
                             # Extract Amazon link and image
-                            amazon_url = self.extract_amazon_link(post_url)
+                            affiliate_url, link_type = self.extract_affiliate_link(post_url)
                             product_image = self.extract_product_image(post_url)
                             
                             # Generate pricing
@@ -255,7 +326,7 @@ class SimpleScraper:
                                 'discountPercent': discount,
                                 'category': 'General',
                                 'description': description,
-                                'affiliateUrl': amazon_url or post_url,
+                                'affiliateUrl': affiliate_url,
                                 'featured': len(deals) < 5,  # First 5 are featured
                                 'dateAdded': datetime.now().strftime('%Y-%m-%d'),
                                 'source_url': post_url
@@ -280,8 +351,10 @@ class SimpleScraper:
         
         return deals
     
-    def parse_rss_and_generate_json(self, feed_url="https://www.savingsguru.ca/feed/", limit=200):
+    def parse_rss_and_generate_json(self, feed_url=None, limit=None):
         """Use WordPress REST API to get more posts than RSS limit"""
+        feed_url = feed_url or f"{self.base_url}/feed/"
+        limit = limit or self.limit
         print(f"Fetching posts via WordPress REST API...")
         
         # Try WordPress REST API first
@@ -303,7 +376,7 @@ class SimpleScraper:
                 deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
                 
                 # Extract Amazon link
-                amazon_url = self.extract_amazon_link(post_url)
+                affiliate_url, link_type = self.extract_affiliate_link(post_url)
                 
                 # Extract image - try API first, then scraping
                 product_image = self.extract_featured_image_from_api(post)
@@ -312,16 +385,14 @@ class SimpleScraper:
                     print(f"  Scraped image from post content")
                 
                 # SAFETY CHECK: Only include deals with valid affiliate links (Amazon or ShopStyle)
-                is_amazon = amazon_url and 'amazon' in amazon_url.lower() and 'savingsgurucc-20' in amazon_url
-                is_shopstyle = amazon_url and 'shopstyle.it' in amazon_url.lower()
-                
-                if not amazon_url or not (is_amazon or is_shopstyle):
+                # SAFETY CHECK: Must have valid affiliate link and NEVER link to SmartCanucks
+                if not affiliate_url:
                     print(f"SKIPPING: No valid affiliate link found for '{title[:30]}...'")
                     continue
                 
-                # SAFETY CHECK: Never use source URLs as affiliate links
-                if amazon_url and ('savingsguru.ca' in amazon_url or post_url in amazon_url):
-                    print(f"SKIPPING: Source URL detected as affiliate link for '{title[:30]}...'")
+                # SAFETY CHECK: Never use SmartCanucks URLs as affiliate links
+                if 'smartcanucks.ca' in affiliate_url.lower():
+                    print(f"SKIPPING: SmartCanucks URL detected as affiliate link for '{title[:30]}...'")
                     continue
                 
                 # Generate pricing
@@ -339,13 +410,13 @@ class SimpleScraper:
                     'discountPercent': discount,
                     'category': 'General',
                     'description': description,
-                    'affiliateUrl': amazon_url,  # NEVER fallback to post_url
+                    'affiliateUrl': affiliate_url,  # NEVER fallback to post_url
                     'featured': len(deals) < 5,  # First 5 are featured
                     'dateAdded': datetime.now().strftime('%Y-%m-%d')
                 }
                 
                 deals.append(deal)
-                print(f"Added deal: {title[:30]}... -> {amazon_url[:50]}...")
+                print(f"Added deal: {title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
                 time.sleep(0.2)  # Be nice to the server
         
         if len(deals) < 10:  # Fallback to RSS if REST API failed
@@ -358,26 +429,27 @@ class SimpleScraper:
                 if count >= limit:
                     break
                     
-                print(f"Processing: {entry.title[:50]}...")
+                try:
+                    print(f"Processing: {entry.title[:50]}...")
+                except UnicodeEncodeError:
+                    print(f"Processing: {entry.title[:30].encode('ascii', 'replace').decode('ascii')}...")
                 
                 # Create unique ID
                 deal_id = re.sub(r'[^a-zA-Z0-9]', '', entry.title.lower())[:20]
                 
                 # Extract Amazon link and image
-                amazon_url = self.extract_amazon_link(entry.link)
+                affiliate_url, link_type = self.extract_affiliate_link(entry.link)
                 product_image = self.extract_product_image(entry.link)
                 
                 # SAFETY CHECK: Only include deals with valid affiliate links (Amazon or ShopStyle)
-                is_amazon = amazon_url and 'amazon' in amazon_url.lower() and 'savingsgurucc-20' in amazon_url
-                is_shopstyle = amazon_url and 'shopstyle.it' in amazon_url.lower()
-                
-                if not amazon_url or not (is_amazon or is_shopstyle):
-                    print(f"⚠️  SKIPPING RSS: No valid affiliate link found for '{entry.title[:30]}...'")
+                # SAFETY CHECK: Must have valid affiliate link and NEVER link to SmartCanucks
+                if not affiliate_url:
+                    print(f"SKIPPING RSS: No valid affiliate link found for '{entry.title[:30]}...'")
                     continue
                 
-                # SAFETY CHECK: Never use source URLs as affiliate links
-                if amazon_url and ('savingsguru.ca' in amazon_url or entry.link in amazon_url):
-                    print(f"⚠️  SKIPPING RSS: Source URL detected as affiliate link for '{entry.title[:30]}...'")
+                # SAFETY CHECK: Never use SmartCanucks URLs as affiliate links
+                if 'smartcanucks.ca' in affiliate_url.lower():
+                    print(f"SKIPPING RSS: SmartCanucks URL detected as affiliate link for '{entry.title[:30]}...'")
                     continue
                 
                 # Generate pricing
@@ -395,13 +467,13 @@ class SimpleScraper:
                     'discountPercent': discount,
                     'category': 'General',
                     'description': description,
-                    'affiliateUrl': amazon_url,  # NEVER fallback to entry.link
+                    'affiliateUrl': affiliate_url,  # NEVER fallback to entry.link
                     'featured': count < 5,  # First 5 are featured
                     'dateAdded': datetime.now().strftime('%Y-%m-%d')
                 }
                 
                 deals.append(deal)
-                print(f"✅ Added RSS deal: {entry.title[:30]}... -> {amazon_url[:50]}...")
+                print(f"Added RSS deal: {entry.title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
                 count += 1
                 time.sleep(0.5)  # Be nice to the server
         
@@ -415,7 +487,7 @@ class SimpleScraper:
 
 def main():
     scraper = SimpleScraper()
-    scraper.parse_rss_and_generate_json(limit=200)
+    scraper.parse_rss_and_generate_json()
 
 if __name__ == "__main__":
     main()

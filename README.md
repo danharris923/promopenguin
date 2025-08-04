@@ -1,15 +1,15 @@
-# SavingsGuru.cc - Canada's Premier Deals Platform 🍁
+# PromoPenguin - Canada's Premier Deals Platform 🐧
 
 <div align="center">
   
-  ![SavingsGuru](https://img.shields.io/badge/SavingsGuru-2.0-green?style=for-the-badge)
+  ![PromoPenguin](https://img.shields.io/badge/PromoPenguin-1.0-blue?style=for-the-badge)
   ![React](https://img.shields.io/badge/React-18.2-blue?style=for-the-badge&logo=react)
   ![TypeScript](https://img.shields.io/badge/TypeScript-4.9-blue?style=for-the-badge&logo=typescript)
   ![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=for-the-badge&logo=vercel)
   
   **🚀 Automatically aggregating the hottest Amazon deals for Canadian shoppers**
   
-  [Live Site](https://savingsguru.cc) • [Report Bug](https://github.com/danharris923/savingsguru.cc/issues)
+  [Live Site](https://promopenguin.com) • [Report Bug](https://github.com/danharris923/promopenguin/issues)
   
 </div>
 
@@ -17,7 +17,7 @@
 
 ## 🎯 The Mission
 
-We're not just another deals site. SavingsGuru.cc is on a mission to save Canadians millions by intelligently aggregating and curating the absolute best deals from across the web. Our automated platform works 24/7 so you never miss a legendary deal.
+We're not just another deals site. PromoPenguin is on a mission to save Canadians millions by intelligently aggregating and curating the absolute best deals from across the web. Our automated platform works 24/7 so you never miss a legendary deal.
 
 ## ✨ What Makes Us Different
 
@@ -45,8 +45,8 @@ We're not just another deals site. SavingsGuru.cc is on a mission to save Canadi
 
 ```bash
 # Clone the repository
-git clone https://github.com/danharris923/savingsguru.cc.git
-cd savingsguru-modern
+git clone https://github.com/danharris923/promopenguin.git
+cd promopenguin-modern
 
 # Install dependencies
 npm install
@@ -129,6 +129,6 @@ MIT License - feel free to use this code for your own projects!
   
   **Built with ❤️ for Canadian shoppers**
   
-  [Visit SavingsGuru.cc](https://savingsguru.cc)
+  [Visit PromoPenguin](https://promopenguin.com)
   
 </div>

@@ -30,10 +30,14 @@ jobs:
         pip install --upgrade pip setuptools wheel
         pip install -r requirements.txt
     
-    - name: Generate deals from RSS
+    - name: Generate deals from SmartCanucks
       run: |
         cd scraper
         python simple_scraper.py
+      env:
+        SITE_URL: "https://www.smartcanucks.ca"
+        AFFILIATE_TAG: "offgriddisc06-20"
+        DEAL_LIMIT: "200"
     
     - name: Commit deals.json changes
       run: |
