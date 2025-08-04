@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Deal } from '../types/Deal';
 import { getPriceDisplay } from '../utils/dealUtils';
 import { getPriceVisibility } from '../utils/priceVisibility';
@@ -12,6 +12,7 @@ interface DealCardProps {
 
 const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default', colorIndex = 0 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [startX, setStartX] = useState(0);
   const bgColors = ['bg-card-pink', 'bg-card-blue', 'bg-card-yellow'];
   const bgColor = bgColors[colorIndex % bgColors.length];
   
@@ -20,8 +21,42 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
   const priceVisibility = getPriceVisibility(deal.id);
   
   const handleCardClick = () => {
-    setIsExpanded(!isExpanded);
+    if (window.innerWidth < 768) { // Mobile only
+      setIsExpanded(!isExpanded);
+    } else { // Desktop - use original modal
+      onClick();
+    }
   };
+
+  // Touch handlers for swipe-to-close on mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isExpanded) return;
+    
+    const endX = e.changedTouches[0].clientX;
+    const diffX = endX - startX;
+    
+    // Swipe right from left edge to close (threshold: 100px)
+    if (diffX > 100 && startX < 50) {
+      setIsExpanded(false);
+    }
+  };
+
+  // Prevent body scroll when expanded on mobile
+  useEffect(() => {
+    if (isExpanded && window.innerWidth < 768) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isExpanded]);
   
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     if (process.env.NODE_ENV === 'development') {
@@ -30,8 +65,8 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
     e.currentTarget.src = '/placeholder-deal.svg';
   };
   
-  // Expanded overlay view - iPhone style
-  if (isExpanded) {
+  // Expanded overlay view - iPhone style (mobile only)
+  if (isExpanded && window.innerWidth < 768) {
     return (
       <>
         {/* Background overlay - Only on desktop */}
@@ -41,12 +76,19 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
         />
         
         {/* Expanded card - iPhone style full screen */}
-        <div className="fixed inset-0 md:inset-8 lg:inset-16 z-50 md:flex md:items-center md:justify-center md:p-4">
-          <div className={`${bgColor} md:rounded-xl w-full max-w-4xl h-full md:max-h-full md:h-auto overflow-y-auto md:shadow-2xl`}>
+        <div 
+          className="fixed inset-0 z-50"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className={`${bgColor} w-full h-full overflow-y-auto`}>
             <div className="relative">
-              {/* iPhone style header with close */}
-              <div className="flex justify-between items-center p-4 md:hidden bg-white/95 backdrop-blur-sm">
-                <div></div>
+              {/* iPhone style header with close and swipe indicator */}
+              <div className="flex justify-between items-center p-4 bg-white/95 backdrop-blur-sm">
+                <div className="flex items-center">
+                  <div className="w-1 h-6 bg-gray-300 rounded-full mr-3"></div>
+                  <span className="text-sm text-gray-500">Swipe from left edge to close</span>
+                </div>
                 <h3 className="text-lg font-semibold text-gray-900 truncate flex-1 text-center mx-4">Deal Details</h3>
                 <button
                   onClick={() => setIsExpanded(false)}
@@ -58,16 +100,6 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
                 </button>
               </div>
               
-              {/* Desktop close button */}
-              <button
-                onClick={() => setIsExpanded(false)}
-                className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg z-10 hover:bg-gray-100 hidden md:block"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              
               {/* Large image - iPhone style */}
               <div className="relative bg-white">
                 {/* Discount badge overlay on image */}
@@ -77,10 +109,11 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
                   </div>
                 )}
                 
+                <div className="h-80">
                   <img 
                     src={deal.imageUrl} 
                     alt={deal.title}
-                    className="w-full h-full object-contain p-4 md:p-8"
+                    className="w-full h-full object-contain p-4"
                     onError={handleImageError}
                     loading="lazy"
                     referrerPolicy="no-referrer"
@@ -90,17 +123,17 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
               
               {/* Details section - iPhone style */}
               <div className="bg-white flex-1 min-h-0">
-                <div className="p-4 md:p-8">
-                  <h2 className="text-xl md:text-3xl font-bold text-text-dark mb-3 md:mb-4">{deal.title}</h2>
+                <div className="p-4">
+                  <h2 className="text-xl font-bold text-text-dark mb-3">{deal.title}</h2>
                   
-                  <p className="text-base md:text-lg text-gray-700 mb-4 md:mb-6">{deal.description}</p>
+                  <p className="text-base text-gray-700 mb-4">{deal.description}</p>
                   
                   {/* Price section */}
                   <div className="mb-6">
-                    <div className="flex items-baseline gap-2 md:gap-4 mb-4">
-                      <p className="text-3xl md:text-4xl font-bold text-primary-green">{priceDisplay.current}</p>
+                    <div className="flex items-baseline gap-2 mb-4">
+                      <p className="text-3xl font-bold text-primary-green">{priceDisplay.current}</p>
                       {priceDisplay.original && (
-                        <p className="text-xl md:text-2xl text-gray-500 line-through">{priceDisplay.original}</p>
+                        <p className="text-xl text-gray-500 line-through">{priceDisplay.original}</p>
                       )}
                     </div>
                     
