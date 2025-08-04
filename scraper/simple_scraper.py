@@ -97,11 +97,12 @@ class SimpleScraper:
                         print(f"  Error resolving {href}: {e}")
                         continue
                 
-                # Direct merchant links (non-Amazon) - be more selective
-                elif (any(x in href.lower() for x in ['.com/', '.ca/', '.net/']) and 
-                      'http' in href):
+                # Any other merchant links - accept them all (clean and ready for future affiliate tags)
+                elif 'http' in href and '.' in href:
                     print(f"  Found merchant link: {href}")
-                    return self.clean_affiliate_link(href), 'other'
+                    cleaned_url = self.clean_affiliate_link(href)
+                    if cleaned_url:  # Only return if it passed the safety check
+                        return cleaned_url, 'other'
             
             return None, 'unknown'
             
@@ -413,14 +414,14 @@ class SimpleScraper:
                     product_image = self.extract_product_image(post_url)
                     print(f"  Scraped image from post content")
                 
-                # SAFETY CHECK: Must have valid affiliate link and NEVER link to SmartCanucks
-                if not affiliate_url:
-                    print(f"SKIPPING: No valid affiliate link found for '{title[:30]}...'")
+                # SAFETY CHECK: Never use SmartCanucks URLs as affiliate links
+                if affiliate_url and 'smartcanucks.ca' in affiliate_url.lower():
+                    print(f"SKIPPING: SmartCanucks URL detected as affiliate link for '{title[:30]}...'")
                     continue
                 
-                # SAFETY CHECK: Never use SmartCanucks URLs as affiliate links
-                if 'smartcanucks.ca' in affiliate_url.lower():
-                    print(f"SKIPPING: SmartCanucks URL detected as affiliate link for '{title[:30]}...'")
+                # If no affiliate link found, skip this deal
+                if not affiliate_url:
+                    print(f"SKIPPING: No merchant link found for '{title[:30]}...'")
                     continue
                 
                 # Generate pricing
@@ -470,14 +471,14 @@ class SimpleScraper:
                 affiliate_url, link_type = self.extract_affiliate_link(entry.link)
                 product_image = self.extract_product_image(entry.link)
                 
-                # SAFETY CHECK: Must have valid affiliate link and NEVER link to SmartCanucks
-                if not affiliate_url:
-                    print(f"SKIPPING RSS: No valid affiliate link found for '{entry.title[:30]}...'")
+                # SAFETY CHECK: Never use SmartCanucks URLs as affiliate links
+                if affiliate_url and 'smartcanucks.ca' in affiliate_url.lower():
+                    print(f"SKIPPING RSS: SmartCanucks URL detected as affiliate link for '{entry.title[:30]}...'")
                     continue
                 
-                # SAFETY CHECK: Never use SmartCanucks URLs as affiliate links
-                if 'smartcanucks.ca' in affiliate_url.lower():
-                    print(f"SKIPPING RSS: SmartCanucks URL detected as affiliate link for '{entry.title[:30]}...'")
+                # If no merchant link found, skip this deal
+                if not affiliate_url:
+                    print(f"SKIPPING RSS: No merchant link found for '{entry.title[:30]}...'")
                     continue
                 
                 # Generate pricing
