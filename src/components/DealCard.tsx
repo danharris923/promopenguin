@@ -90,7 +90,7 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
                   
                   <a
                     href={deal.affiliateUrl}
-                    target="__blank"
+                    target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     className="bg-gradient-to-r from-primary-green to-green-600 text-white py-4 px-8 rounded-lg text-xl font-bold hover:from-green-600 hover:to-green-700 transition-colors shadow-lg"
