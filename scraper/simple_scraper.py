@@ -13,6 +13,65 @@ import time
 from bs4 import BeautifulSoup
 import random
 import os
+from typing import List, Optional
+from pydantic import BaseModel, HttpUrl, validator, Field
+
+class Deal(BaseModel):
+    """Pydantic model for deal validation"""
+    id: str = Field(..., min_length=1, max_length=20, description="Unique deal identifier")
+    title: str = Field(..., min_length=5, max_length=200, description="Deal title")
+    imageUrl: str = Field(default="/placeholder-deal.svg", description="Product image URL")
+    price: float = Field(..., gt=0, lt=10000, description="Current price in CAD")
+    originalPrice: float = Field(..., gt=0, lt=10000, description="Original price in CAD")
+    discountPercent: int = Field(..., ge=1, le=90, description="Discount percentage")
+    category: str = Field(default="General", min_length=1, max_length=50, description="Deal category")
+    description: str = Field(..., min_length=10, max_length=500, description="Deal description")
+    affiliateUrl: HttpUrl = Field(..., description="Clean affiliate URL")
+    featured: bool = Field(default=False, description="Whether deal is featured")
+    dateAdded: str = Field(..., regex=r'^\d{4}-\d{2}-\d{2}$', description="Date added (YYYY-MM-DD)")
+    
+    @validator('originalPrice')
+    def original_price_must_be_higher(cls, v, values):
+        """Original price must be higher than current price"""
+        if 'price' in values and v <= values['price']:
+            raise ValueError('originalPrice must be higher than price')
+        return v
+    
+    @validator('discountPercent')
+    def discount_percent_must_match(cls, v, values):
+        """Discount percentage must match the actual price difference"""
+        if 'price' in values and 'originalPrice' in values:
+            actual_discount = int(((values['originalPrice'] - values['price']) / values['originalPrice']) * 100)
+            if abs(v - actual_discount) > 2:  # Allow 2% tolerance for rounding
+                raise ValueError(f'discountPercent {v}% does not match calculated discount {actual_discount}%')
+        return v
+    
+    @validator('affiliateUrl')
+    def affiliate_url_must_be_valid(cls, v):
+        """Affiliate URL must not link back to SmartCanucks"""
+        url_str = str(v)
+        if 'smartcanucks.ca' in url_str.lower():
+            raise ValueError('affiliateUrl cannot link back to SmartCanucks')
+        return v
+    
+    @validator('title')
+    def title_must_be_clean(cls, v):
+        """Title must not contain suspicious content"""
+        if any(word in v.lower() for word in ['error', 'failed', 'test', 'debug']):
+            raise ValueError('title contains suspicious content')
+        return v
+
+class DealsCollection(BaseModel):
+    """Collection of validated deals"""
+    deals: List[Deal] = Field(..., min_items=1, max_items=200, description="List of deals")
+    
+    @validator('deals')
+    def deals_must_have_unique_ids(cls, v):
+        """All deals must have unique IDs"""
+        ids = [deal.id for deal in v]
+        if len(ids) != len(set(ids)):
+            raise ValueError('Deal IDs must be unique')
+        return v
 
 class SimpleScraper:
     def __init__(self):
@@ -499,22 +558,30 @@ class SimpleScraper:
                 # Generate description
                 description = self.generate_description(title)
                 
-                deal = {
-                    'id': deal_id,
-                    'title': title,
-                    'imageUrl': product_image or '/placeholder-deal.svg',
-                    'price': current_price,
-                    'originalPrice': original_price,
-                    'discountPercent': discount,
-                    'category': 'General',
-                    'description': description,
-                    'affiliateUrl': affiliate_url,  # NEVER fallback to post_url
-                    'featured': len(deals) < 5,  # First 5 are featured
-                    'dateAdded': datetime.now().strftime('%Y-%m-%d')
-                }
-                
-                deals.append(deal)
-                print(f"Added deal: {title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
+                # Create and validate deal with Pydantic
+                try:
+                    deal_data = {
+                        'id': deal_id,
+                        'title': title,
+                        'imageUrl': product_image or '/placeholder-deal.svg',
+                        'price': current_price,
+                        'originalPrice': original_price,
+                        'discountPercent': discount,
+                        'category': 'General',
+                        'description': description,
+                        'affiliateUrl': affiliate_url,
+                        'featured': len(deals) < 5,  # First 5 are featured
+                        'dateAdded': datetime.now().strftime('%Y-%m-%d')
+                    }
+                    
+                    # Validate with Pydantic
+                    validated_deal = Deal(**deal_data)
+                    deals.append(validated_deal.dict())
+                    print(f"✅ Valid deal: {title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
+                    
+                except ValueError as e:
+                    print(f"❌ Invalid deal '{title[:30]}...': {e}")
+                    continue
                 time.sleep(0.2)  # Be nice to the server
         
         if len(deals) < 10:  # Fallback to RSS if REST API failed
@@ -563,22 +630,31 @@ class SimpleScraper:
                 # Generate description
                 description = self.generate_description(entry.title)
                 
-                deal = {
-                    'id': deal_id,
-                    'title': entry.title,
-                    'imageUrl': product_image or '/placeholder-deal.svg',
-                    'price': current_price,
-                    'originalPrice': original_price,
-                    'discountPercent': discount,
-                    'category': 'General',
-                    'description': description,
-                    'affiliateUrl': affiliate_url,  # NEVER fallback to entry.link
-                    'featured': count < 5,  # First 5 are featured
-                    'dateAdded': datetime.now().strftime('%Y-%m-%d')
-                }
+                # Create and validate deal with Pydantic
+                try:
+                    deal_data = {
+                        'id': deal_id,
+                        'title': entry.title,
+                        'imageUrl': product_image or '/placeholder-deal.svg',
+                        'price': current_price,
+                        'originalPrice': original_price,
+                        'discountPercent': discount,
+                        'category': 'General',
+                        'description': description,
+                        'affiliateUrl': affiliate_url,  # NEVER fallback to entry.link
+                        'featured': count < 5,  # First 5 are featured
+                        'dateAdded': datetime.now().strftime('%Y-%m-%d')
+                    }
+                    
+                    # Validate with Pydantic
+                    validated_deal = Deal(**deal_data)
+                    deals.append(validated_deal.dict())
+                    print(f"✅ Valid RSS deal: {entry.title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
+                    
+                except ValueError as e:
+                    print(f"❌ Invalid RSS deal '{entry.title[:30]}...': {e}")
+                    continue
                 
-                deals.append(deal)
-                print(f"Added RSS deal: {entry.title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
                 count += 1
                 time.sleep(1.0)  # Be nice to the server, avoid rate limiting
         
