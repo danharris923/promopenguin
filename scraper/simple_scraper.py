@@ -318,15 +318,23 @@ class SimpleScraper:
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Look for the main product image
-            content_img = soup.select_one('.entry-content img, .post-content img, article img')
-            if content_img and content_img.get('src'):
-                img_url = content_img.get('src')
-                if img_url.startswith('//'):
-                    img_url = 'https:' + img_url
-                elif img_url.startswith('/'):
-                    img_url = 'https://www.smartcanucks.ca' + img_url
-                return img_url
+            # Look for the main product image - SmartCanucks uses wp-image class
+            selectors = [
+                'img[class*="wp-image"]',  # WordPress images
+                '.entry-content img',
+                '.post-content img', 
+                'article img'
+            ]
+            
+            for selector in selectors:
+                content_img = soup.select_one(selector)
+                if content_img and content_img.get('src'):
+                    img_url = content_img.get('src')
+                    if img_url.startswith('//'):
+                        img_url = 'https:' + img_url
+                    elif img_url.startswith('/'):
+                        img_url = 'https://www.smartcanucks.ca' + img_url
+                    return img_url
             
             return None
             
@@ -581,10 +589,10 @@ class SimpleScraper:
                     deal_dict = validated_deal.model_dump()
                     deal_dict['affiliateUrl'] = str(deal_dict['affiliateUrl'])
                     deals.append(deal_dict)
-                    print(f"✅ Valid deal: {title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
+                    print(f"Valid deal: {title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
                     
                 except ValueError as e:
-                    print(f"❌ Invalid deal '{title[:30]}...': {e}")
+                    print(f"Invalid deal '{title[:30]}...': {e}")
                     continue
                 time.sleep(0.2)  # Be nice to the server
         
@@ -617,6 +625,10 @@ class SimpleScraper:
                 affiliate_url, link_type = self.get_merchant_url_from_title(entry.title)
                 
                 product_image = self.extract_product_image(entry.link)
+                if product_image:
+                    print(f"  Got image: {product_image[:60]}...")
+                else:
+                    print(f"  No image found")
                 
                 # SAFETY CHECK: Never use SmartCanucks URLs as affiliate links
                 if affiliate_url and 'smartcanucks.ca' in affiliate_url.lower():
@@ -656,10 +668,10 @@ class SimpleScraper:
                     deal_dict = validated_deal.model_dump()
                     deal_dict['affiliateUrl'] = str(deal_dict['affiliateUrl'])
                     deals.append(deal_dict)
-                    print(f"✅ Valid RSS deal: {entry.title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
+                    print(f"Valid RSS deal: {entry.title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
                     
                 except ValueError as e:
-                    print(f"❌ Invalid RSS deal '{entry.title[:30]}...': {e}")
+                    print(f"Invalid RSS deal '{entry.title[:30]}...': {e}")
                     continue
                 
                 count += 1
