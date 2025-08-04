@@ -29,7 +29,10 @@ jobs:
         cd scraper
         pip install --upgrade pip setuptools wheel
         pip install -r requirements.txt
-        playwright install chromium
+        
+    - name: Install Playwright browsers
+      run: |
+        playwright install --with-deps chromium
     
     - name: Generate deals from SmartCanucks
       env:
