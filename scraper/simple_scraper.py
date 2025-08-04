@@ -28,7 +28,7 @@ class Deal(BaseModel):
     description: str = Field(..., min_length=10, max_length=500, description="Deal description")
     affiliateUrl: HttpUrl = Field(..., description="Clean affiliate URL")
     featured: bool = Field(default=False, description="Whether deal is featured")
-    dateAdded: str = Field(..., regex=r'^\d{4}-\d{2}-\d{2}$', description="Date added (YYYY-MM-DD)")
+    dateAdded: str = Field(..., pattern=r'^\d{4}-\d{2}-\d{2}$', description="Date added (YYYY-MM-DD)")
     
     @validator('originalPrice')
     def original_price_must_be_higher(cls, v, values):
