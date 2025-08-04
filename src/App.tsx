@@ -19,8 +19,8 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage searchQuery={searchQuery} />} />
           <Route path="/deals" element={<HomePage searchQuery={searchQuery} />} />
-          <Route path="/about" element={<HomePage searchQuery={searchQuery} />} />
-          <Route path="/coupons" element={<HomePage searchQuery={searchQuery} />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/coupons" element={<CouponsPage />} />
           <Route path="/amazon" element={<HomePage searchQuery={searchQuery} />} />
         </Routes>
         
