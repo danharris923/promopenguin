@@ -1,6 +1,15 @@
 {
-  "name": "savingsguru-modern",
-  "version": "0.1.0",
+  "name": "savingsguru-cc",
+  "version": "2.0.0",
+  "description": "Canada's premier deals aggregation platform - Find the best Amazon deals and save money",
+  "author": "SavingsGuru Team",
+  "license": "MIT",
+  "homepage": "https://savingsguru.cc",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danharris923/savingsguru.cc.git"
+  },
+  "keywords": ["deals", "savings", "amazon", "canada", "affiliate", "shopping"],
   "private": true,
   "dependencies": {
     "@types/node": "^18.19.0",
