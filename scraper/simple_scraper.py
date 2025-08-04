@@ -101,7 +101,7 @@ class SimpleScraper:
             'jysk': 'https://jysk.ca/',
             'marks': 'https://marks.com/',
             'mark\'s': 'https://marks.com/',
-            'mark's': 'https://marks.com/',  # Handle different apostrophe types
+            "mark's": 'https://marks.com/',  # Handle different apostrophe types
             'golf town': 'https://golftowncanada.ca/',
             'knix': 'https://knix.ca/',
             'healthy planet': 'https://healthyplanet.ca/',
