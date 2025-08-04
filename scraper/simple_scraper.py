@@ -64,7 +64,7 @@ class SimpleScraper:
                 if featured_media and len(featured_media) > 0:
                     media_item = featured_media[0]
                     if 'source_url' in media_item:
-                        print(f"  📷 Got featured image from API")
+                        print(f"  Got featured image from API")
                         return media_item['source_url']
             
             # Fallback: Check Yoast SEO data for og:image
@@ -309,19 +309,19 @@ class SimpleScraper:
                 product_image = self.extract_featured_image_from_api(post)
                 if not product_image:
                     product_image = self.extract_product_image(post_url)
-                    print(f"  📷 Scraped image from post content")
+                    print(f"  Scraped image from post content")
                 
                 # SAFETY CHECK: Only include deals with valid affiliate links (Amazon or ShopStyle)
                 is_amazon = amazon_url and 'amazon' in amazon_url.lower() and 'savingsgurucc-20' in amazon_url
                 is_shopstyle = amazon_url and 'shopstyle.it' in amazon_url.lower()
                 
                 if not amazon_url or not (is_amazon or is_shopstyle):
-                    print(f"⚠️  SKIPPING: No valid affiliate link found for '{title[:30]}...'")
+                    print(f"SKIPPING: No valid affiliate link found for '{title[:30]}...'")
                     continue
                 
                 # SAFETY CHECK: Never use source URLs as affiliate links
                 if amazon_url and ('savingsguru.ca' in amazon_url or post_url in amazon_url):
-                    print(f"⚠️  SKIPPING: Source URL detected as affiliate link for '{title[:30]}...'")
+                    print(f"SKIPPING: Source URL detected as affiliate link for '{title[:30]}...'")
                     continue
                 
                 # Generate pricing
@@ -345,7 +345,7 @@ class SimpleScraper:
                 }
                 
                 deals.append(deal)
-                print(f"✅ Added deal: {title[:30]}... -> {amazon_url[:50]}...")
+                print(f"Added deal: {title[:30]}... -> {amazon_url[:50]}...")
                 time.sleep(0.2)  # Be nice to the server
         
         if len(deals) < 10:  # Fallback to RSS if REST API failed
