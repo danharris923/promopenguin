@@ -34,7 +34,7 @@ jobs:
       env:
         SITE_URL: "https://www.smartcanucks.ca"
         AFFILIATE_TAG: "offgriddisc06-20"
-        DEAL_LIMIT: "200"
+        DEAL_LIMIT: "20"
       run: |
         cd scraper
         python simple_scraper.py

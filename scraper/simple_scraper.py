@@ -489,7 +489,7 @@ class SimpleScraper:
                 deals.append(deal)
                 print(f"Added RSS deal: {entry.title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
                 count += 1
-                time.sleep(0.5)  # Be nice to the server
+                time.sleep(1.0)  # Be nice to the server, avoid rate limiting
         
         # Write to deals.json
         output_path = '../public/deals.json'
