@@ -41,48 +41,66 @@ class SimpleScraper:
             
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Look for all external links in the post content
+            # Look for all external links in the post content, prioritizing bottom links
             content_area = soup.find('div', class_='entry-content') or soup.find('article') or soup
             
-            for a in content_area.find_all('a', href=True):
+            # Skip unwanted links (SmartCanucks, app stores, social media)
+            skip_domains = [
+                'smartcanucks.ca', 'apps.apple.com', 'play.google.com', 
+                'facebook.com', 'twitter.com', 'instagram.com', 'pinterest.com',
+                'hotcanadadeals.ca', 'flipp.com'
+            ]
+            
+            # Get all links, but search from bottom to top (reverse order)
+            all_links = content_area.find_all('a', href=True)
+            all_links.reverse()  # Start from bottom of post
+            
+            for a in all_links:
                 href = a['href']
                 
-                # Skip unwanted links (SmartCanucks, app stores, social media)
-                skip_domains = [
-                    'smartcanucks.ca', 'apps.apple.com', 'play.google.com', 
-                    'facebook.com', 'twitter.com', 'instagram.com', 'pinterest.com',
-                    'hotcanadadeals.ca', 'flipp.com'
-                ]
+                # Skip unwanted links first
                 if any(domain in href.lower() for domain in skip_domains):
                     continue
+                
+                print(f"  Checking link: {href[:60]}...")
                     
                 # Check for Amazon links (amzn.to, amazon.ca, amazon.com)
                 if any(x in href.lower() for x in ['amzn.to/', 'amazon.ca', 'amazon.com']):
+                    print(f"  Found Amazon link: {href}")
                     if 'amzn.to/' in href:
-                        # Resolve shortened Amazon link
-                        redirect_response = requests.head(href, allow_redirects=True, timeout=10)
-                        final_url = redirect_response.url
-                        return self.clean_and_add_affiliate_tag(final_url, 'amazon'), 'amazon'
+                        try:
+                            redirect_response = requests.head(href, allow_redirects=True, timeout=10)
+                            final_url = redirect_response.url
+                            return self.clean_and_add_affiliate_tag(final_url, 'amazon'), 'amazon'
+                        except:
+                            return self.clean_and_add_affiliate_tag(href, 'amazon'), 'amazon'
                     else:
                         return self.clean_and_add_affiliate_tag(href, 'amazon'), 'amazon'
                 
                 # Check for other affiliate/shortened links (bit.ly, etc.)
-                elif any(x in href.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly']):
-                    # Resolve shortened link to get the final destination
+                elif any(x in href.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co']):
+                    print(f"  Found shortened link: {href}")
                     try:
                         redirect_response = requests.head(href, allow_redirects=True, timeout=10)
                         final_url = redirect_response.url
+                        print(f"  Resolved to: {final_url}")
+                        # Skip if it resolves to unwanted domains
+                        if any(domain in final_url.lower() for domain in skip_domains):
+                            print(f"  Skipping resolved URL (unwanted domain)")
+                            continue
                         # Check if final destination is Amazon
                         if any(x in final_url.lower() for x in ['amazon.ca', 'amazon.com']):
                             return self.clean_and_add_affiliate_tag(final_url, 'amazon'), 'amazon'
                         else:
                             return self.clean_affiliate_link(final_url), 'other'
-                    except:
-                        # If we can't resolve, use the shortened link as-is
-                        return href, 'other'
+                    except Exception as e:
+                        print(f"  Error resolving {href}: {e}")
+                        continue
                 
-                # Direct merchant links (non-Amazon)
-                elif any(x in href.lower() for x in ['.com', '.ca', '.net']) and 'http' in href:
+                # Direct merchant links (non-Amazon) - be more selective
+                elif (any(x in href.lower() for x in ['.com/', '.ca/', '.net/']) and 
+                      'http' in href):
+                    print(f"  Found merchant link: {href}")
                     return self.clean_affiliate_link(href), 'other'
             
             return None, 'unknown'
@@ -114,7 +132,12 @@ class SimpleScraper:
             return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
     
     def clean_affiliate_link(self, url):
-        """Clean affiliate parameters from non-Amazon URLs"""
+        """Clean affiliate parameters from non-Amazon URLs - NEVER link back to SmartCanucks"""
+        # SAFETY CHECK: Never return unwanted URLs
+        unwanted_domains = ['smartcanucks.ca', 'apps.apple.com', 'play.google.com', 'hotcanadadeals.ca']
+        if any(domain in url.lower() for domain in unwanted_domains):
+            return None
+            
         parsed = urlparse(url)
         params = parse_qs(parsed.query)
         
@@ -390,7 +413,6 @@ class SimpleScraper:
                     product_image = self.extract_product_image(post_url)
                     print(f"  Scraped image from post content")
                 
-                # SAFETY CHECK: Only include deals with valid affiliate links (Amazon or ShopStyle)
                 # SAFETY CHECK: Must have valid affiliate link and NEVER link to SmartCanucks
                 if not affiliate_url:
                     print(f"SKIPPING: No valid affiliate link found for '{title[:30]}...'")
@@ -443,11 +465,11 @@ class SimpleScraper:
                 # Create unique ID
                 deal_id = re.sub(r'[^a-zA-Z0-9]', '', entry.title.lower())[:20]
                 
-                # Extract Amazon link and image
+                # Extract affiliate link from the actual post page (not RSS content)
+                print(f"  Scraping individual post: {entry.link}")
                 affiliate_url, link_type = self.extract_affiliate_link(entry.link)
                 product_image = self.extract_product_image(entry.link)
                 
-                # SAFETY CHECK: Only include deals with valid affiliate links (Amazon or ShopStyle)
                 # SAFETY CHECK: Must have valid affiliate link and NEVER link to SmartCanucks
                 if not affiliate_url:
                     print(f"SKIPPING RSS: No valid affiliate link found for '{entry.title[:30]}...'")
