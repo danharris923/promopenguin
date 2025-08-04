@@ -32,6 +32,40 @@ class SimpleScraper:
         print(f"  DEAL_LIMIT = {os.getenv('DEAL_LIMIT', 'NOT SET')}")
         print(f"=============================")
     
+    def get_merchant_url_from_title(self, title):
+        """Map deal titles to merchant websites"""
+        title_lower = title.lower()
+        
+        # Merchant mapping based on common Canadian retailers
+        merchant_map = {
+            'reebok': 'https://reebok.ca/',
+            'jysk': 'https://jysk.ca/',
+            'marks': 'https://marks.com/',
+            'mark\'s': 'https://marks.com/',
+            'golf town': 'https://golftowncanada.ca/',
+            'knix': 'https://knix.ca/',
+            'healthy planet': 'https://healthyplanet.ca/',
+            'shoppers drug mart': 'https://shoppersdrugmart.ca/',
+            'best buy': 'https://bestbuy.ca/',
+            'michaels': 'https://michaels.com/',
+            'lovisa': 'https://lovisa.com/',
+            'lenovo': 'https://lenovo.com/ca/',
+            'loblaws': 'https://loblaws.ca/',
+            'baskin robbins': 'https://baskinrobbins.ca/',
+            'herman miller': 'https://hermanmiller.com/en_ca/',
+        }
+        
+        for merchant, url in merchant_map.items():
+            if merchant in title_lower:
+                print(f"  Mapped '{merchant}' to {url}")
+                return url, 'merchant'
+        
+        # Check for Amazon deals
+        if 'amazon canada' in title_lower:
+            return 'https://amazon.ca/', 'amazon'
+        
+        return None, 'unknown'
+    
     def extract_affiliate_link(self, deal_url):
         """Extract the main affiliate/deal link from SmartCanucks post"""
         try:
@@ -89,12 +123,14 @@ class SimpleScraper:
                 if any(x in href.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co']):
                     continue
                     
-                # Collect valid links
-                if 'http' in href:
+                # Collect valid links - be more permissive
+                if 'http' in href and any(tld in href for tld in ['.com', '.ca', '.net', '.org']):
                     # Parse URL to count path depth
                     from urllib.parse import urlparse
                     parsed = urlparse(href)
                     path_segments = [p for p in parsed.path.split('/') if p]
+                    
+                    print(f"  Found valid link: {href} - Text: '{a.get_text()}'")
                     
                     merchant_links.append({
                         'href': href,
@@ -497,9 +533,10 @@ class SimpleScraper:
                 # Create unique ID
                 deal_id = re.sub(r'[^a-zA-Z0-9]', '', entry.title.lower())[:20]
                 
-                # Extract affiliate link from the actual post page (not RSS content)
-                print(f"  Scraping individual post: {entry.link}")
-                affiliate_url, link_type = self.extract_affiliate_link(entry.link)
+                # SmartCanucks uses JavaScript links, so map from title instead
+                print(f"  Mapping merchant from title: {entry.title}")
+                affiliate_url, link_type = self.get_merchant_url_from_title(entry.title)
+                
                 product_image = self.extract_product_image(entry.link)
                 
                 # SAFETY CHECK: Never use SmartCanucks URLs as affiliate links
