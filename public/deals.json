@@ -1,67 +1,41 @@
 [
   {
     "id": "amazoncanadadealssav",
-    "title": "Amazon Canada Deals: Save 33% on Mini Chainsaw + 50% on Women\u2019s Shirts + More",
+    "title": "Amazon Canada Deals: Save 42% on Air Purifier + 33% on Wide Flat Iron Hair Straightener + More",
     "imageUrl": "/placeholder-deal.svg",
-    "price": 36.3,
-    "originalPrice": 49.94,
-    "discountPercent": 27,
+    "price": 47.93,
+    "originalPrice": 66.93,
+    "discountPercent": 28,
     "category": "General",
-    "description": "\u26a1 Hot savings on Amazon Canada Deals: Save 33% on Mini Chainsaw + 50% on Women\u2019s Shirts + More! Don't miss this incredible offer.",
+    "description": "\ud83c\udfc6 Top-rated Amazon Canada Deals: Save 42% on Air Purifier + 33% on Wide Flat Iron Hair Straightener + More at a fantastic price. Your wallet will thank you!",
     "affiliateUrl": "https://amazon.ca/",
     "featured": true,
-    "dateAdded": "2025-08-06"
+    "dateAdded": "2025-08-07"
+  },
+  {
+    "id": "amazoncanadadealssav",
+    "title": "Amazon Canada Deals: Save 33% on Mini Chainsaw + 50% on Women\u2019s Shirts + More",
+    "imageUrl": "/placeholder-deal.svg",
+    "price": 21.84,
+    "originalPrice": 32.23,
+    "discountPercent": 32,
+    "category": "General",
+    "description": "\ud83d\udd25 Amazing deal on Amazon Canada Deals: Save 33% on Mini Chainsaw + 50% on Women\u2019s Shirts + More! Premium quality at an unbeatable price.",
+    "affiliateUrl": "https://amazon.ca/",
+    "featured": true,
+    "dateAdded": "2025-08-07"
   },
   {
     "id": "amazoncanadadealssav",
     "title": "Amazon Canada Deals: Save 45% on 3 in 1 Wireless Charger + 50% on Women\u2019s Summer Casual Dress + More",
     "imageUrl": "/placeholder-deal.svg",
-    "price": 71.75,
-    "originalPrice": 89.35,
-    "discountPercent": 19,
+    "price": 65.14,
+    "originalPrice": 86.23,
+    "discountPercent": 24,
     "category": "General",
     "description": "\ud83c\udfc6 Top-rated Amazon Canada Deals: Save 45% on 3 in 1 Wireless Charger + 50% on Women\u2019s Summer Casual Dress + More at a fantastic price. Your wallet will thank you!",
     "affiliateUrl": "https://amazon.ca/",
     "featured": true,
-    "dateAdded": "2025-08-06"
-  },
-  {
-    "id": "loblawsontarioflashs",
-    "title": "Loblaws Ontario Flash Sale: Get 10,000 Points for Every $40 Spent on Baby Items August 5th & 6th",
-    "imageUrl": "/placeholder-deal.svg",
-    "price": 48.89,
-    "originalPrice": 67.34,
-    "discountPercent": 27,
-    "category": "General",
-    "description": "\ud83d\udd25 Amazing deal on Loblaws Ontario Flash Sale: Get 10,000 Points for Every $40 Spent on Baby Items August 5th & 6th! Premium quality at an unbeatable price.",
-    "affiliateUrl": "https://loblaws.ca/",
-    "featured": true,
-    "dateAdded": "2025-08-06"
-  },
-  {
-    "id": "shoppersdrugmartcana",
-    "title": "Shoppers Drug Mart Canada Tuesday Text Offer: Get 10,000 PC Optimum Points When You Spend $40",
-    "imageUrl": "/placeholder-deal.svg",
-    "price": 65.7,
-    "originalPrice": 101.55,
-    "discountPercent": 35,
-    "category": "General",
-    "description": "\ud83c\udfaf Limited time offer on Shoppers Drug Mart Canada Tuesday Text Offer: Get 10,000 PC Optimum Points When You Spend $40. Act fast before it's gone!",
-    "affiliateUrl": "https://shoppersdrugmart.ca/",
-    "featured": true,
-    "dateAdded": "2025-08-06"
-  },
-  {
-    "id": "hermanmillercanadali",
-    "title": "Herman Miller Canada: Living Room Sale 20% off + Sale up to 30% off",
-    "imageUrl": "/placeholder-deal.svg",
-    "price": 30.89,
-    "originalPrice": 47.46,
-    "discountPercent": 34,
-    "category": "General",
-    "description": "\ud83c\udfc6 Top-rated Herman Miller Canada: Living Room Sale 20% off + Sale up to 30% off at a fantastic price. Your wallet will thank you!",
-    "affiliateUrl": "https://hermanmiller.com/en_ca/",
-    "featured": true,
-    "dateAdded": "2025-08-06"
+    "dateAdded": "2025-08-07"
   }
 ]
