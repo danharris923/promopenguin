@@ -542,83 +542,83 @@ class SimpleScraper:
                 
                 found_posts = False
                 for url in urls_to_try:
-                try:
-                    print(f"Checking page {page}: {url}")
-                    response = requests.get(url, timeout=15)
-                    if response.status_code != 200:
-                        continue
-                    
-                    soup = BeautifulSoup(response.content, 'html.parser')
-                    
-                    # Look for post links
-                    post_links = soup.find_all('a', href=True)
-                    post_urls = []
-                    
-                    for link in post_links:
-                        href = link['href']
-                        # Match post pattern: /YYYY/MM/DD/post-name/
-                        if re.match(r'https://www\.smartcanucks\.ca/\d{4}/\d{2}/\d{2}/.+/', href):
-                            if href not in [deal.get('source_url') for deal in deals]:
-                                post_urls.append(href)
-                    
-                    if post_urls:
-                        found_posts = True
-                        print(f"Found {len(post_urls)} posts on page {page}")
+                    try:
+                        print(f"Checking page {page}: {url}")
+                        response = requests.get(url, timeout=15)
+                        if response.status_code != 200:
+                            continue
                         
-                        for post_url in post_urls[:limit - len(deals)]:
-                            if len(deals) >= limit:
-                                break
+                        soup = BeautifulSoup(response.content, 'html.parser')
+                        
+                        # Look for post links
+                        post_links = soup.find_all('a', href=True)
+                        post_urls = []
+                        
+                        for link in post_links:
+                            href = link['href']
+                            # Match post pattern: /YYYY/MM/DD/post-name/
+                            if re.match(r'https://www\.smartcanucks\.ca/\d{4}/\d{2}/\d{2}/.+/', href):
+                                if href not in [deal.get('source_url') for deal in deals]:
+                                    post_urls.append(href)
+                        
+                        if post_urls:
+                            found_posts = True
+                            print(f"Found {len(post_urls)} posts on page {page}")
+                            
+                            for post_url in post_urls[:limit - len(deals)]:
+                                if len(deals) >= limit:
+                                    break
+                                    
+                                # Extract post title from URL
+                                title_match = re.search(r'/([^/]+)/$', post_url)
+                                if title_match:
+                                    title = title_match.group(1).replace('-', ' ').title()
+                                else:
+                                    title = f"Deal {len(deals) + 1}"
                                 
-                            # Extract post title from URL
-                            title_match = re.search(r'/([^/]+)/$', post_url)
-                            if title_match:
-                                title = title_match.group(1).replace('-', ' ').title()
-                            else:
-                                title = f"Deal {len(deals) + 1}"
+                                print(f"Processing: {title[:50]}...")
+                                
+                                # Create unique ID
+                                deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
+                                
+                                # Extract actual affiliate link from post
+                                affiliate_url, link_type = self.extract_affiliate_link(post_url)
+                                
+                                # If no link found, try title mapping as fallback
+                                if not affiliate_url:
+                                    affiliate_url, link_type = self.get_merchant_url_from_title(title)
+                                
+                                product_image = self.extract_product_image(post_url)
+                                
+                                # Generate pricing
+                                current_price, original_price, discount = self.generate_price_and_discount(title)
+                                
+                                # Generate description
+                                description = self.generate_description(title)
+                                
+                                deal = {
+                                    'id': deal_id,
+                                    'title': title,
+                                    'imageUrl': product_image or '/placeholder-deal.svg',
+                                    'price': current_price,
+                                    'originalPrice': original_price,
+                                    'discountPercent': discount,
+                                    'category': 'General',
+                                    'description': description,
+                                    'affiliateUrl': affiliate_url,
+                                    'featured': len(deals) < 5,  # First 5 are featured
+                                    'dateAdded': datetime.now().strftime('%Y-%m-%d'),
+                                    'source_url': post_url
+                                }
+                                
+                                deals.append(deal)
+                                time.sleep(0.3)  # Be nice to the server
                             
-                            print(f"Processing: {title[:50]}...")
-                            
-                            # Create unique ID
-                            deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
-                            
-                            # Extract actual affiliate link from post
-                            affiliate_url, link_type = self.extract_affiliate_link(post_url)
-                            
-                            # If no link found, try title mapping as fallback
-                            if not affiliate_url:
-                                affiliate_url, link_type = self.get_merchant_url_from_title(title)
-                            
-                            product_image = self.extract_product_image(post_url)
-                            
-                            # Generate pricing
-                            current_price, original_price, discount = self.generate_price_and_discount(title)
-                            
-                            # Generate description
-                            description = self.generate_description(title)
-                            
-                            deal = {
-                                'id': deal_id,
-                                'title': title,
-                                'imageUrl': product_image or '/placeholder-deal.svg',
-                                'price': current_price,
-                                'originalPrice': original_price,
-                                'discountPercent': discount,
-                                'category': 'General',
-                                'description': description,
-                                'affiliateUrl': affiliate_url,
-                                'featured': len(deals) < 5,  # First 5 are featured
-                                'dateAdded': datetime.now().strftime('%Y-%m-%d'),
-                                'source_url': post_url
-                            }
-                            
-                            deals.append(deal)
-                            time.sleep(0.3)  # Be nice to the server
-                        
-                        break  # Found posts, no need to try other URLs
-                
-                except Exception as e:
-                    print(f"Error scraping page {page}: {e}")
-                    continue
+                            break  # Found posts, no need to try other URLs
+                    
+                    except Exception as e:
+                        print(f"Error scraping page {page}: {e}")
+                        continue
             
                 if not found_posts:
                     print(f"No posts found in {source_name} page {page}")
