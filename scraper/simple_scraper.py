@@ -75,9 +75,9 @@ class DealsCollection(BaseModel):
 
 class SimpleScraper:
     def __init__(self):
-        self.affiliate_tag = os.getenv('AFFILIATE_TAG', 'offgriddisc06-20')
+        self.affiliate_tag = os.getenv('AFFILIATE_TAG', 'promopenguin-20')
         self.base_url = os.getenv('SITE_URL', 'https://www.smartcanucks.ca')
-        self.limit = int(os.getenv('DEAL_LIMIT', '10'))
+        self.limit = int(os.getenv('DEAL_LIMIT', '50'))
         
         # Debug: Print the configuration being used
         print(f"=== SCRAPER CONFIGURATION ===")
@@ -125,6 +125,85 @@ class SimpleScraper:
             return 'https://amazon.ca/', 'amazon'
         
         return None, 'unknown'
+    
+    def extract_affiliate_link(self, deal_url):
+        """Extract affiliate links from deal posts using Beautiful Soup"""
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(deal_url, headers=headers, timeout=10)
+            if response.status_code != 200:
+                return None, 'error'
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Look for links in the content area
+            content_area = soup.select_one('.entry-content, article, .post-content')
+            if not content_area:
+                return None, 'no_content'
+            
+            # Find all links in the content
+            links = content_area.find_all('a', href=True)
+            
+            # Filter out unwanted domains
+            skip_domains = [
+                'smartcanucks.ca', 'apps.apple.com', 'play.google.com', 
+                'facebook.com', 'twitter.com', 'instagram.com', 'pinterest.com',
+                'hotcanadadeals.ca', 'flipp.com', 'youtube.com', 'linkedin.com'
+            ]
+            
+            valid_links = []
+            for link in links:
+                url = link.get('href', '')
+                text = link.get_text(strip=True)
+                
+                # Skip empty or relative links
+                if not url or not url.startswith('http'):
+                    continue
+                
+                # Skip unwanted domains
+                if any(domain in url.lower() for domain in skip_domains):
+                    continue
+                
+                # Skip shortened links that aren't merchant-specific
+                if any(x in url.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co']):
+                    continue
+                
+                # Calculate priority based on link text and URL
+                has_sale_text = any(keyword in text.lower() for keyword in 
+                                  ['sale', 'deal', 'promo', 'clearance', 'offer', 'save', 'discount', 'shop now', 'click here', 'buy now'])
+                is_merchant_link = any(merchant in url.lower() for merchant in 
+                                     ['amazon', 'bestbuy', 'walmart', 'costco', 'canadiantire', 'loblaws', 'shoppers',
+                                      'homedepot', 'staples', 'thebay', 'sportchek', 'winners', 'marshalls',
+                                      'dollarama', 'rona', 'lowes', 'ikea', 'indigo', 'chapters'])
+                
+                valid_links.append({
+                    'url': url,
+                    'text': text,
+                    'has_sale_text': has_sale_text,
+                    'is_merchant_link': is_merchant_link
+                })
+            
+            if valid_links:
+                # Sort by merchant link and sale text priority
+                valid_links.sort(key=lambda x: (x['is_merchant_link'], x['has_sale_text']), reverse=True)
+                best_link = valid_links[0]
+                
+                print(f"  Selected: {best_link['text'][:30]} -> {best_link['url'][:60]}")
+                
+                # Handle Amazon links
+                if any(x in best_link['url'].lower() for x in ['amazon.ca', 'amazon.com']):
+                    return self.clean_and_add_affiliate_tag(best_link['url'], 'amazon'), 'amazon'
+                else:
+                    cleaned_url = self.clean_affiliate_link(best_link['url'])
+                    return cleaned_url, 'merchant' if cleaned_url else None
+            
+            return None, 'no_valid_links'
+            
+        except Exception as e:
+            print(f"  Error extracting affiliate link: {e}")
+            return None, 'error'
     
     def extract_affiliate_link_with_playwright(self, deal_url):
         """Use Playwright to extract JavaScript links from SmartCanucks posts"""
@@ -426,15 +505,43 @@ class SimpleScraper:
         page = 1
         per_page = 20  # Posts per page on the site
         
-        while len(deals) < limit:
-            # Try different URL patterns to get more posts
-            urls_to_try = [
-                f"https://www.smartcanucks.ca/page/{page}/",
-                f"https://www.smartcanucks.ca/category/amazon/page/{page}/",
-            ]
-            
-            found_posts = False
-            for url in urls_to_try:
+        # Get deals from specific deal categories and tags
+        # SmartCanucks uses both categories and tags for organizing deals
+        deal_sources = [
+            ('category', 'amazon-canada-deals'),
+            ('category', 'canadian-deals'),
+            ('category', 'walmart-canada'),
+            ('category', 'costco-canada'),
+            ('tag', 'amazon-deals'),
+            ('tag', 'walmart-deals'),
+            ('tag', 'best-buy-deals'),
+            ('tag', 'costco-deals'),
+            ('tag', 'online-shopping'),
+            ('tag', 'clearance')
+        ]
+        
+        for source_type, source_name in deal_sources:
+            if len(deals) >= limit:
+                break
+                
+            page = 1
+            while len(deals) < limit and page <= 3:  # Max 3 pages per source
+                if source_type == 'category':
+                    url = f"https://www.smartcanucks.ca/category/{source_name}/page/{page}/"
+                else:  # tag
+                    url = f"https://www.smartcanucks.ca/tag/{source_name}/page/{page}/"
+                
+                # Also try main page for first source
+                if source_name == deal_sources[0][1] and page == 1:
+                    urls_to_try = [
+                        url,
+                        "https://www.smartcanucks.ca/"
+                    ]
+                else:
+                    urls_to_try = [url]
+                
+                found_posts = False
+                for url in urls_to_try:
                 try:
                     print(f"Checking page {page}: {url}")
                     response = requests.get(url, timeout=15)
@@ -474,8 +581,13 @@ class SimpleScraper:
                             # Create unique ID
                             deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
                             
-                            # Extract Amazon link and image
+                            # Extract actual affiliate link from post
                             affiliate_url, link_type = self.extract_affiliate_link(post_url)
+                            
+                            # If no link found, try title mapping as fallback
+                            if not affiliate_url:
+                                affiliate_url, link_type = self.get_merchant_url_from_title(title)
+                            
                             product_image = self.extract_product_image(post_url)
                             
                             # Generate pricing
@@ -508,13 +620,11 @@ class SimpleScraper:
                     print(f"Error scraping page {page}: {e}")
                     continue
             
-            if not found_posts:
-                print(f"No more posts found after page {page}")
-                break
-                
-            page += 1
-            if page > 10:  # Safety limit
-                break
+                if not found_posts:
+                    print(f"No posts found in {source_name} page {page}")
+                    break
+                    
+                page += 1
         
         return deals
     
@@ -542,8 +652,12 @@ class SimpleScraper:
                 # Create unique ID
                 deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
                 
-                # Extract Amazon link
+                # Extract actual affiliate link from post
                 affiliate_url, link_type = self.extract_affiliate_link(post_url)
+                
+                # If no link found, try title mapping as fallback
+                if not affiliate_url:
+                    affiliate_url, link_type = self.get_merchant_url_from_title(title)
                 
                 # Extract image - try API first, then scraping
                 product_image = self.extract_featured_image_from_api(post)
@@ -621,8 +735,12 @@ class SimpleScraper:
                 # Create unique ID
                 deal_id = re.sub(r'[^a-zA-Z0-9]', '', entry.title.lower())[:20]
                 
-                # SmartCanucks uses JavaScript links, use title mapping instead of heavy Playwright
-                affiliate_url, link_type = self.get_merchant_url_from_title(entry.title)
+                # Extract actual affiliate link from post
+                affiliate_url, link_type = self.extract_affiliate_link(entry.link)
+                
+                # If no link found, try title mapping as fallback
+                if not affiliate_url:
+                    affiliate_url, link_type = self.get_merchant_url_from_title(entry.title)
                 
                 product_image = self.extract_product_image(entry.link)
                 if product_image:
