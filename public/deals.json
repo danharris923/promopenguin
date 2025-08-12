@@ -1,80 +1,93 @@
 [
   {
+    "id": "loblawsandrealcanadi",
+    "title": "Loblaws and Real Canadian Superstore: Get 25,000 PC Optimum Points for Every $100 Spent on General Merchandise August 14th \u2013 20th",
+    "imageUrl": "/placeholder-deal.svg",
+    "price": 57.55,
+    "originalPrice": 84.65,
+    "discountPercent": 32,
+    "category": "General",
+    "description": "\u26a1 Hot savings on Loblaws and Real Canadian Superstore: Get 25,000 PC Optimum Points for Every $100 Spent on General Merchandise August 14th \u2013 20th! Don't miss this incredible offer.",
+    "affiliateUrl": "https://loblaws.ca/",
+    "featured": true,
+    "dateAdded": "2025-08-12"
+  },
+  {
     "id": "shoppersdrugmartcana",
     "title": "Shoppers Drug Mart Canada Family & Friends Event: 20% off Regular Priced Merchandise August 11th & 12th",
     "imageUrl": "/placeholder-deal.svg",
-    "price": 46.08,
-    "originalPrice": 61.47,
-    "discountPercent": 25,
+    "price": 35.17,
+    "originalPrice": 53.21,
+    "discountPercent": 33,
     "category": "General",
-    "description": "\ud83d\udcab Discover why thousands love Shoppers Drug Mart Canada Family & Friends Event: 20% off Regular Priced Merchandise August 11th & 12th. Quality meets value!",
+    "description": "\u26a1 Hot savings on Shoppers Drug Mart Canada Family & Friends Event: 20% off Regular Priced Merchandise August 11th & 12th! Don't miss this incredible offer.",
     "affiliateUrl": "https://shoppersdrugmart.ca/",
     "featured": true,
-    "dateAdded": "2025-08-11"
+    "dateAdded": "2025-08-12"
   },
   {
     "id": "amazoncanadadealssav",
     "title": "Amazon Canada Deals: Save 12% on XREXS 14.5\u2033 Digital Wall Clock Battery Operated + More",
     "imageUrl": "/placeholder-deal.svg",
-    "price": 62.65,
-    "originalPrice": 90.32,
-    "discountPercent": 30,
+    "price": 59.18,
+    "originalPrice": 80.89,
+    "discountPercent": 26,
     "category": "General",
-    "description": "\ud83d\udd25 Amazing deal on Amazon Canada Deals: Save 12% on XREXS 14.5\u2033 Digital Wall Clock Battery Operated + More! Premium quality at an unbeatable price.",
+    "description": "\u26a1 Hot savings on Amazon Canada Deals: Save 12% on XREXS 14.5\u2033 Digital Wall Clock Battery Operated + More! Don't miss this incredible offer.",
     "affiliateUrl": "https://amazon.ca/",
     "featured": true,
-    "dateAdded": "2025-08-11"
+    "dateAdded": "2025-08-12"
   },
   {
     "id": "amazoncanadadealssav",
     "title": "Amazon Canada Deals: Save 83% on Wireless Earbuds Using Promo Code & Coupon + 50% on Vegetable Chopper Cutter + More",
     "imageUrl": "/placeholder-deal.svg",
-    "price": 42.61,
-    "originalPrice": 55.84,
-    "discountPercent": 23,
+    "price": 29.11,
+    "originalPrice": 40.8,
+    "discountPercent": 28,
     "category": "General",
     "description": "\ud83c\udfc6 Top-rated Amazon Canada Deals: Save 83% on Wireless Earbuds Using Promo Code & Coupon + 50% on Vegetable Chopper Cutter + More at a fantastic price. Your wallet will thank you!",
     "affiliateUrl": "https://amazon.ca/",
     "featured": true,
-    "dateAdded": "2025-08-11"
+    "dateAdded": "2025-08-12"
   },
   {
     "id": "michaelscanada40offo",
     "title": "Michaels Canada: 40% Off One Regular Priced Item + Weekly Deals",
     "imageUrl": "/placeholder-deal.svg",
-    "price": 29.23,
-    "originalPrice": 42.33,
-    "discountPercent": 30,
+    "price": 59.37,
+    "originalPrice": 92.29,
+    "discountPercent": 35,
     "category": "General",
-    "description": "\ud83d\udcab Discover why thousands love Michaels Canada: 40% Off One Regular Priced Item + Weekly Deals. Quality meets value!",
+    "description": "\ud83d\udd25 Amazing deal on Michaels Canada: 40% Off One Regular Priced Item + Weekly Deals! Premium quality at an unbeatable price.",
     "affiliateUrl": "https://michaels.com/",
     "featured": true,
-    "dateAdded": "2025-08-11"
+    "dateAdded": "2025-08-12"
   },
   {
     "id": "bestbuycanadasaveupt",
     "title": "Best Buy Canada: Save up to $300 on Select Laptops + Top Deals",
     "imageUrl": "/placeholder-deal.svg",
-    "price": 349.78,
-    "originalPrice": 487.42,
-    "discountPercent": 28,
+    "price": 673.78,
+    "originalPrice": 892.51,
+    "discountPercent": 24,
     "category": "General",
-    "description": "\ud83c\udfc6 Top-rated Best Buy Canada: Save up to $300 on Select Laptops + Top Deals at a fantastic price. Your wallet will thank you!",
+    "description": "\ud83d\udcab Discover why thousands love Best Buy Canada: Save up to $300 on Select Laptops + Top Deals. Quality meets value!",
     "affiliateUrl": "https://bestbuy.ca/",
-    "featured": true,
-    "dateAdded": "2025-08-11"
+    "featured": false,
+    "dateAdded": "2025-08-12"
   },
   {
     "id": "amazoncanadadealssav",
     "title": "Amazon Canada Deals: Save 42% on Air Purifier + 50% on Vegetable Chopper Cutter + More",
     "imageUrl": "/placeholder-deal.svg",
-    "price": 26.05,
-    "originalPrice": 39.28,
-    "discountPercent": 33,
+    "price": 74.52,
+    "originalPrice": 115.28,
+    "discountPercent": 35,
     "category": "General",
     "description": "\ud83d\udcab Discover why thousands love Amazon Canada Deals: Save 42% on Air Purifier + 50% on Vegetable Chopper Cutter + More. Quality meets value!",
     "affiliateUrl": "https://amazon.ca/",
     "featured": false,
-    "dateAdded": "2025-08-11"
+    "dateAdded": "2025-08-12"
   }
 ]
