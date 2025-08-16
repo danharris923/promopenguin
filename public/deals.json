@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "id": "bestbuycanadatechfes",
+    "title": "Best Buy Canada: Tech Fest Sale Until August 17th",
+    "imageUrl": "/placeholder-deal.svg",
+    "price": 503.41,
+    "originalPrice": 671.36,
+    "discountPercent": 25,
+    "category": "General",
+    "description": "\ud83c\udfc6 Top-rated Best Buy Canada: Tech Fest Sale Until August 17th at a fantastic price. Your wallet will thank you!",
+    "affiliateUrl": "https://bestbuy.ca/",
+    "featured": true,
+    "dateAdded": "2025-08-16"
+  }
+]
