@@ -28,11 +28,11 @@ const Header: React.FC<HeaderProps> = ({ onSearch }) => {
       <div className="bg-penguin-charcoal">
         <div className="max-w-container mx-auto px-4 py-4 md:py-6">
           <div className="flex items-center">
-            <h1 className="text-2xl md:text-4xl font-bold text-penguin-white">
+            <div className="text-2xl md:text-4xl font-bold text-penguin-white">
               <a href="/" className="flex items-center">
                 <span className="bg-penguin-ice-blue text-penguin-black px-3 py-1 rounded-lg font-display">PromoPenguin</span>
               </a>
-            </h1>
+            </div>
             <p className="ml-4 text-penguin-ice-blue text-sm md:text-base hidden md:block">
               Waddle to the best deals! 🐧
             </p>
@@ -55,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({ onSearch }) => {
             
             <div className="hidden md:flex items-center space-x-6">
               <a href="/" className="text-penguin-white hover:text-penguin-ice-blue font-medium transition-colors">HOME</a>
-              <a href="/deals" className="text-penguin-white hover:text-penguin-ice-blue transition-colors">DEALS</a>
+              <a href="/flyers" className="text-penguin-white hover:text-penguin-ice-blue transition-colors">FLYERS</a>
               <a href="/coupons" className="text-penguin-white hover:text-penguin-ice-blue transition-colors">COUPONS</a>
               <a href="/amazon" className="text-penguin-white hover:text-penguin-ice-blue transition-colors">AMAZON</a>
               <a href="/about" className="text-penguin-white hover:text-penguin-ice-blue transition-colors">ABOUT</a>
@@ -80,7 +80,7 @@ const Header: React.FC<HeaderProps> = ({ onSearch }) => {
           {mobileMenuOpen && (
             <div className="md:hidden py-3 border-t border-penguin-dark-gray">
               <a href="/" className="block py-2 text-penguin-white hover:text-penguin-ice-blue font-medium transition-colors">HOME</a>
-              <a href="/deals" className="block py-2 text-penguin-white hover:text-penguin-ice-blue transition-colors">DEALS</a>
+              <a href="/flyers" className="block py-2 text-penguin-white hover:text-penguin-ice-blue transition-colors">FLYERS</a>
               <a href="/coupons" className="block py-2 text-penguin-white hover:text-penguin-ice-blue transition-colors">COUPONS</a>
               <a href="/amazon" className="block py-2 text-penguin-white hover:text-penguin-ice-blue transition-colors">AMAZON</a>
               <a href="/about" className="block py-2 text-penguin-white hover:text-penguin-ice-blue transition-colors">ABOUT</a>

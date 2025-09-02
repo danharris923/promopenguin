@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import { Deal } from '../types/Deal';
-import { getPriceDisplay } from '../utils/dealUtils';
-import { getPriceVisibility } from '../utils/priceVisibility';
 
 interface BottomSheetProps {
   deal: Deal | null;
@@ -28,9 +26,6 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ deal, isOpen, onClose }) => {
   }, [isOpen]);
 
   if (!isOpen || !deal) return null;
-
-  const priceDisplay = getPriceDisplay(deal.originalPrice, deal.price, deal.discountPercent);
-  const priceVisibility = getPriceVisibility(deal.id);
 
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // More sensitive swipe detection for better UX
@@ -59,7 +54,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ deal, isOpen, onClose }) => {
 
       {/* Bottom Sheet */}
       <motion.div
-        className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 max-h-[85vh] overflow-hidden lg:hidden"
+        className="fixed bottom-0 left-0 right-0 bg-penguin-charcoal border-t border-penguin-gray rounded-t-3xl z-50 max-h-[85vh] overflow-hidden lg:hidden"
         style={{ y }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
@@ -77,14 +72,14 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ deal, isOpen, onClose }) => {
       >
         {/* Drag Handle */}
         <div className="flex justify-center pt-4 pb-3">
-          <div className="w-12 h-1.5 bg-gray-300 rounded-full transition-colors duration-200 hover:bg-gray-400" />
+          <div className="w-12 h-1.5 bg-penguin-gray rounded-full transition-colors duration-200 hover:bg-gray-400" />
         </div>
 
         {/* Content */}
         <div className="px-6 pb-8 overflow-y-auto max-h-[calc(85vh-60px)]">
           {/* Product Image */}
           <div className="flex justify-center mb-6">
-            <div className="relative w-48 h-48 bg-gray-100 rounded-2xl overflow-hidden">
+            <div className="relative w-48 h-48 bg-penguin-dark-gray rounded-2xl overflow-hidden">
               <img
                 src={deal.imageUrl}
                 alt={deal.title}
@@ -93,42 +88,20 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ deal, isOpen, onClose }) => {
                   e.currentTarget.src = '/placeholder-deal.svg';
                 }}
               />
-              
-              {/* Discount Badge */}
-              {priceDisplay.badge && priceDisplay.badge.primary && (
-                <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
-                  {priceDisplay.badge.primary}
-                </div>
-              )}
             </div>
           </div>
 
           {/* Product Title */}
-          <h2 className="text-xl font-bold text-gray-900 mb-4 leading-tight">
+          <h2 className="text-xl font-bold text-penguin-white mb-4 leading-tight">
             {deal.title}
           </h2>
 
-          {/* Price Display */}
-          {priceVisibility.showPrice ? (
-            <div className="mb-6">
-              <div className="flex items-baseline gap-3 mb-2">
-                <span className="text-3xl font-bold text-primary-green">
-                  {priceDisplay.current}
-                </span>
-                {priceDisplay.original && (
-                  <span className="text-xl text-gray-500 line-through">
-                    {priceDisplay.original}
-                  </span>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="mb-6">
-              <p className="text-gray-700 leading-relaxed">
-                {deal.description}
-              </p>
-            </div>
-          )}
+          {/* Description */}
+          <div className="mb-6">
+            <p className="text-penguin-white leading-relaxed">
+              {deal.description}
+            </p>
+          </div>
 
           {/* Action Button */}
           <div className="space-y-3">
@@ -136,15 +109,15 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ deal, isOpen, onClose }) => {
               href={deal.affiliateUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full bg-gradient-to-r from-primary-green to-green-600 text-white text-center py-4 px-6 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-all duration-150"
+              className="block w-full bg-gradient-to-r from-penguin-ice-blue to-blue-400 text-penguin-black text-center py-4 px-6 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-all duration-150"
             >
-              {priceVisibility.showPrice ? 'Shop Now at Amazon' : priceVisibility.checkPriceMessage}
+              🛒 Shop This Deal
             </a>
 
             {/* Secondary Info */}
             <div className="text-center">
-              <p className="text-xs text-gray-500">
-                *Prices may vary. Deal added on {new Date(deal.dateAdded).toLocaleDateString()}
+              <p className="text-xs text-gray-400">
+                Deal added on {new Date(deal.dateAdded).toLocaleDateString()}
               </p>
             </div>
           </div>

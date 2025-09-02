@@ -10,4 +10,5 @@ export interface Deal {
   affiliateUrl: string;
   featured?: boolean;
   dateAdded: string;
+  source?: string;
 }

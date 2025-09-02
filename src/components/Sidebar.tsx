@@ -1,7 +1,5 @@
 import React from 'react';
 import { Deal } from '../types/Deal';
-import { getPriceDisplay } from '../utils/dealUtils';
-import { getPriceVisibility } from '../utils/priceVisibility';
 
 interface SidebarProps {
   topDeals: Deal[];
@@ -22,76 +20,88 @@ const Sidebar: React.FC<SidebarProps> = ({ topDeals, onDealClick }) => {
         </div>
         
         <div className="space-y-4">
-          {topDeals.map((deal, index) => {
-            const priceDisplay = getPriceDisplay(deal.originalPrice, deal.price, deal.discountPercent);
-            const priceVisibility = getPriceVisibility(deal.id);
-            return (
-              <div
-                key={deal.id}
-                onClick={() => onDealClick(deal)}
-                className="cursor-pointer group"
-              >
-                <div className="flex gap-3 p-3 rounded-lg hover:bg-penguin-dark-gray transition-colors">
-                  <div className="w-20 h-20 flex-shrink-0 bg-penguin-white rounded-lg overflow-hidden">
-                    <img 
-                      src={deal.imageUrl} 
-                      alt={deal.title}
-                      className="w-full h-full object-contain p-1"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder-deal.svg';
-                      }}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm text-penguin-white line-clamp-2 group-hover:text-penguin-ice-blue">
-                      {deal.title}
-                    </h4>
-                    {priceVisibility.showPrice ? (
-                      <div className="mt-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-bold text-penguin-ice-blue">{priceDisplay.current}</span>
-                          {priceDisplay.original && (
-                            <span className="text-xs text-gray-400 line-through">{priceDisplay.original}</span>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-1">
-                        <span className="text-xs text-penguin-black font-bold bg-penguin-ice-blue px-2 py-1 rounded">
-                          {priceVisibility.checkPriceMessage}
-                        </span>
-                      </div>
-                    )}
-                    {priceDisplay.badge && priceDisplay.badge.primary && (
-                      <span className="inline-block mt-1 text-xs bg-red-500 text-white px-2 py-0.5 rounded">
-                        {priceDisplay.badge.primary}
-                      </span>
-                    )}
-                  </div>
+          {topDeals.map((deal, index) => (
+            <div
+              key={deal.id}
+              onClick={() => onDealClick(deal)}
+              className="cursor-pointer group"
+            >
+              <div className="flex gap-3 p-3 rounded-lg hover:bg-penguin-dark-gray transition-colors">
+                <div className="w-20 h-20 flex-shrink-0 bg-penguin-white rounded-lg overflow-hidden">
+                  <img 
+                    src={deal.imageUrl} 
+                    alt={deal.title}
+                    className="w-full h-full object-contain p-1"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder-deal.svg';
+                    }}
+                  />
                 </div>
-                {index < topDeals.length - 1 && <hr className="mt-2 border-penguin-dark-gray" />}
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <h4 className="font-medium text-sm text-penguin-white line-clamp-2 group-hover:text-penguin-ice-blue">
+                    {deal.title}
+                  </h4>
+                  <button className="mt-2 bg-gradient-to-r from-penguin-ice-blue to-blue-400 text-penguin-black text-xs px-3 py-1 rounded-lg font-bold hover:from-blue-400 hover:to-blue-500 transition-colors">
+                    🛒 Shop Deal
+                  </button>
+                </div>
               </div>
-            );
-          })}
+              {index < topDeals.length - 1 && <hr className="mt-2 border-penguin-dark-gray" />}
+            </div>
+          ))}
         </div>
         
         <div className="mt-6 pt-4 border-t border-penguin-dark-gray">
-          <h3 className="font-semibold text-penguin-white mb-3">Latest News 📰</h3>
+          <h2 className="font-semibold text-penguin-white mb-3">Latest News 📰</h2>
           <div className="space-y-3 text-sm">
-            <a href="https://amzn.to/3IWEXO0" className="block hover:text-penguin-ice-blue text-penguin-white">
-              <p className="font-medium line-clamp-2">Ice-Cold Amazon Prime Day Deals Coming Soon</p>
-              <p className="text-xs text-gray-400 mt-1">2 hours ago</p>
+            <a href="https://shopstyle.it/l/cj22Z" className="flex items-start space-x-3 hover:text-penguin-ice-blue text-penguin-white p-2 rounded-lg hover:bg-penguin-dark-gray transition-colors">
+              <img 
+                src="https://logo.clearbit.com/lululemon.com" 
+                alt="Lululemon" 
+                className="w-8 h-8 rounded object-contain bg-white p-1"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32x32/000/fff?text=L';
+                }}
+              />
+              <div className="flex-1">
+                <p className="font-medium line-clamp-2">Lululemon We Made Too Much SALE 🔥</p>
+                <p className="text-xs text-gray-400 mt-1">2 hours ago</p>
+              </div>
             </a>
-            <a href="https://amzn.to/41gQZYM" className="block hover:text-penguin-ice-blue text-penguin-white">
-              <p className="font-medium line-clamp-2">Best Back-to-School Savings This Week</p>
-              <p className="text-xs text-gray-400 mt-1">5 hours ago</p>
+            <a href="https://shopstyle.it/l/cj24C" className="flex items-start space-x-3 hover:text-penguin-ice-blue text-penguin-white p-2 rounded-lg hover:bg-penguin-dark-gray transition-colors">
+              <img 
+                src="https://logo.clearbit.com/gap.com" 
+                alt="Gap" 
+                className="w-8 h-8 rounded object-contain bg-white p-1"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32x32/000/fff?text=G';
+                }}
+              />
+              <div className="flex-1">
+                <p className="font-medium line-clamp-2">Gap SALE - Up to 70% Off Everything 💥</p>
+                <p className="text-xs text-gray-400 mt-1">4 hours ago</p>
+              </div>
             </a>
-            <a href="https://amzn.to/4mlLZds" className="block hover:text-penguin-ice-blue text-penguin-white">
-              <p className="font-medium line-clamp-2">Flash Sale: 50% Off Electronics Today Only</p>
-              <p className="text-xs text-gray-400 mt-1">1 day ago</p>
+            <a href="https://www.basspro.ca/home?utm_source=RAN&utm_medium=affiliate&utm_content=Living+off+the+GRID+in+Canada&ranMID=50435&ranEAID=sUVpAjRtGL4&ranSiteID=sUVpAjRtGL4-Ycc1ydj30YCWas34PH9jlg" className="flex items-start space-x-3 hover:text-penguin-ice-blue text-penguin-white p-2 rounded-lg hover:bg-penguin-dark-gray transition-colors">
+              <img 
+                src="https://logo.clearbit.com/cabelas.ca" 
+                alt="Cabela's" 
+                className="w-8 h-8 rounded object-contain bg-white p-1"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://logo.clearbit.com/basspro.ca';
+                  (e.target as HTMLImageElement).onerror = () => {
+                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32x32/2d5a27/fff?text=C';
+                  };
+                }}
+              />
+              <div className="flex-1">
+                <p className="font-medium line-clamp-2">Cabela's Fall Classic SALE 🍂</p>
+                <p className="text-xs text-gray-400 mt-1">6 hours ago</p>
+              </div>
             </a>
           </div>
         </div>
+
       </div>
     </aside>
   );

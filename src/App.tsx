@@ -4,6 +4,8 @@ import Header from './components/Header';
 import HomePage from './components/HomePage';
 import AboutPage from './components/AboutPage';
 import CouponsPage from './components/CouponsPage';
+import Flyers from './components/Flyers';
+import AmazonPage from './components/AmazonPage';
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,10 +20,10 @@ function App() {
         
         <Routes>
           <Route path="/" element={<HomePage searchQuery={searchQuery} />} />
-          <Route path="/deals" element={<HomePage searchQuery={searchQuery} />} />
+          <Route path="/flyers" element={<Flyers />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/coupons" element={<CouponsPage />} />
-          <Route path="/amazon" element={<HomePage searchQuery={searchQuery} />} />
+          <Route path="/amazon" element={<AmazonPage />} />
         </Routes>
         
         <footer className="bg-penguin-charcoal border-t border-penguin-dark-gray mt-12">

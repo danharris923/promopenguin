@@ -1,811 +1,212 @@
 #!/usr/bin/env python3
 """
-Simple RSS-to-JSON scraper that works without Google Sheets
+Simplified RSS-to-JSON scraper that generates more deals
 """
 
 import json
 import feedparser
 import requests
 import re
-from urllib.parse import urlparse, parse_qs
-from datetime import datetime
 import time
-from bs4 import BeautifulSoup
 import random
 import os
-from typing import List, Optional
-from pydantic import BaseModel, HttpUrl, field_validator, Field
+from datetime import datetime
+from bs4 import BeautifulSoup
 
-class Deal(BaseModel):
-    """Pydantic model for deal validation"""
-    id: str = Field(..., min_length=1, max_length=20, description="Unique deal identifier")
-    title: str = Field(..., min_length=5, max_length=200, description="Deal title")
-    imageUrl: str = Field(default="/placeholder-deal.svg", description="Product image URL")
-    price: float = Field(..., gt=0, lt=10000, description="Current price in CAD")
-    originalPrice: float = Field(..., gt=0, lt=10000, description="Original price in CAD")
-    discountPercent: int = Field(..., ge=1, le=90, description="Discount percentage")
-    category: str = Field(default="General", min_length=1, max_length=50, description="Deal category")
-    description: str = Field(..., min_length=10, max_length=500, description="Deal description")
-    affiliateUrl: HttpUrl = Field(..., description="Clean affiliate URL")
-    featured: bool = Field(default=False, description="Whether deal is featured")
-    dateAdded: str = Field(..., pattern=r'^\d{4}-\d{2}-\d{2}$', description="Date added (YYYY-MM-DD)")
-    
-    @field_validator('originalPrice')
-    def original_price_must_be_higher(cls, v, info):
-        """Original price must be higher than current price"""
-        if 'price' in info.data and v <= info.data['price']:
-            raise ValueError('originalPrice must be higher than price')
-        return v
-    
-    @field_validator('discountPercent')
-    def discount_percent_must_match(cls, v, info):
-        """Discount percentage must match the actual price difference"""
-        if 'price' in info.data and 'originalPrice' in info.data:
-            actual_discount = int(((info.data['originalPrice'] - info.data['price']) / info.data['originalPrice']) * 100)
-            if abs(v - actual_discount) > 2:  # Allow 2% tolerance for rounding
-                raise ValueError(f'discountPercent {v}% does not match calculated discount {actual_discount}%')
-        return v
-    
-    @field_validator('affiliateUrl')
-    def affiliate_url_must_be_valid(cls, v):
-        """Affiliate URL must not link back to SmartCanucks"""
-        url_str = str(v)
-        if 'smartcanucks.ca' in url_str.lower():
-            raise ValueError('affiliateUrl cannot link back to SmartCanucks')
-        return v
-    
-    @field_validator('title')
-    def title_must_be_clean(cls, v):
-        """Title must not contain suspicious content"""
-        if any(word in v.lower() for word in ['error', 'failed', 'test', 'debug']):
-            raise ValueError('title contains suspicious content')
-        return v
-
-class DealsCollection(BaseModel):
-    """Collection of validated deals"""
-    deals: List[Deal] = Field(..., min_items=1, max_items=200, description="List of deals")
-    
-    @field_validator('deals')
-    def deals_must_have_unique_ids(cls, v):
-        """All deals must have unique IDs"""
-        ids = [deal.id for deal in v]
-        if len(ids) != len(set(ids)):
-            raise ValueError('Deal IDs must be unique')
-        return v
-
-class SimpleScraper:
+class SimplifiedScraper:
     def __init__(self):
         self.affiliate_tag = os.getenv('AFFILIATE_TAG', 'promopenguin-20')
         self.base_url = os.getenv('SITE_URL', 'https://www.smartcanucks.ca')
         self.limit = int(os.getenv('DEAL_LIMIT', '50'))
         
-        # Debug: Print the configuration being used
-        print(f"=== SCRAPER CONFIGURATION ===")
-        print(f"Site URL: {self.base_url}")
+        print(f"=== SIMPLIFIED SCRAPER ===")
         print(f"Affiliate Tag: {self.affiliate_tag}")
         print(f"Deal Limit: {self.limit}")
-        print(f"Feed URL will be: {self.base_url}/feed/")
-        print(f"Environment variables:")
-        print(f"  SITE_URL = {os.getenv('SITE_URL', 'NOT SET')}")
-        print(f"  AFFILIATE_TAG = {os.getenv('AFFILIATE_TAG', 'NOT SET')}")
-        print(f"  DEAL_LIMIT = {os.getenv('DEAL_LIMIT', 'NOT SET')}")
-        print(f"=============================")
-    
-    def get_merchant_url_from_title(self, title):
-        """Map deal titles to merchant websites"""
+        print(f"========================")
+
+    def get_merchant_url(self, title):
+        """Map deal titles to clean merchant websites - NO affiliate tags unless we're partners"""
         title_lower = title.lower()
         
-        # Merchant mapping based on common Canadian retailers
+        # Only use affiliate links where we have confirmed partnerships
+        # Amazon only for now with our promopenguin-20 tag
+        if any(word in title_lower for word in ['amazon', 'amzn']):
+            return f'https://amazon.ca/?tag={self.affiliate_tag}'
+        
+        # For all other merchants, use clean direct links with NO affiliate tags
+        # These are scraped deals so we strip any existing affiliates
         merchant_map = {
-            'reebok': 'https://reebok.ca/',
-            'jysk': 'https://jysk.ca/',
-            'marks': 'https://marks.com/',
-            'mark\'s': 'https://marks.com/',
-            "mark's": 'https://marks.com/',  # Handle different apostrophe types
-            'golf town': 'https://golftowncanada.ca/',
-            'knix': 'https://knix.ca/',
-            'healthy planet': 'https://healthyplanet.ca/',
             'shoppers drug mart': 'https://shoppersdrugmart.ca/',
             'best buy': 'https://bestbuy.ca/',
-            'michaels': 'https://michaels.com/',
-            'lovisa': 'https://lovisa.com/',
-            'lenovo': 'https://lenovo.com/ca/',
+            'walmart': 'https://walmart.ca/',
+            'costco': 'https://costco.ca/',
+            'canadian tire': 'https://canadiantire.ca/',
             'loblaws': 'https://loblaws.ca/',
-            'baskin robbins': 'https://baskinrobbins.ca/',
-            'herman miller': 'https://hermanmiller.com/en_ca/',
+            'metro': 'https://metro.ca/',
+            'no frills': 'https://nofrills.ca/',
+            'sobeys': 'https://sobeys.com/',
+            'home depot': 'https://homedepot.ca/',
+            'rona': 'https://rona.ca/',
+            'staples': 'https://staples.ca/',
+            'the bay': 'https://thebay.com/',
+            'sport chek': 'https://sportchek.ca/',
+            'marks': 'https://marks.com/',
+            "mark's": 'https://marks.com/',
+            'winners': 'https://winners.ca/',
+            'marshalls': 'https://marshalls.ca/',
+            'dollarama': 'https://dollarama.com/',
+            'gap': 'https://gap.ca/',
+            'coach': 'https://coach.com/ca/',
+            'lacoste': 'https://lacoste.com/ca/',
+            'under armour': 'https://underarmour.ca/',
+            'bouclair': 'https://bouclair.com/',
+            'air miles': 'https://airmiles.ca/',
+            'anna bella': 'https://annabellaschoiceshop.com/',
         }
         
         for merchant, url in merchant_map.items():
             if merchant in title_lower:
-                print(f"  Mapped '{merchant}' to {url}")
-                return url, 'merchant'
+                return url
         
-        # Check for Amazon deals
-        if 'amazon canada' in title_lower:
-            return 'https://amazon.ca/', 'amazon'
-        
-        return None, 'unknown'
-    
-    def extract_affiliate_link(self, deal_url):
-        """Extract affiliate links from deal posts using Beautiful Soup"""
+        # No fallback to Amazon for unknown merchants - keep it clean
+        # For unknown merchants, we don't add affiliate links at all
+        return 'https://smartcanucks.ca/'  # Link back to source
+
+    def extract_image_from_post(self, post_url):
+        """Extract image from post content"""
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-            response = requests.get(deal_url, headers=headers, timeout=10)
-            if response.status_code != 200:
-                return None, 'error'
-            
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Look for links in the content area
-            content_area = soup.select_one('.entry-content, article, .post-content')
-            if not content_area:
-                return None, 'no_content'
-            
-            # Find all links in the content
-            links = content_area.find_all('a', href=True)
-            
-            # Filter out unwanted domains
-            skip_domains = [
-                'smartcanucks.ca', 'apps.apple.com', 'play.google.com', 
-                'facebook.com', 'twitter.com', 'instagram.com', 'pinterest.com',
-                'hotcanadadeals.ca', 'flipp.com', 'youtube.com', 'linkedin.com'
-            ]
-            
-            valid_links = []
-            for link in links:
-                url = link.get('href', '')
-                text = link.get_text(strip=True)
+            headers = {'User-Agent': 'Mozilla/5.0 (compatible; PromoBot/1.0)'}
+            response = requests.get(post_url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
                 
-                # Skip empty or relative links
-                if not url or not url.startswith('http'):
-                    continue
-                
-                # Skip unwanted domains
-                if any(domain in url.lower() for domain in skip_domains):
-                    continue
-                
-                # Skip shortened links that aren't merchant-specific
-                if any(x in url.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co']):
-                    continue
-                
-                # Calculate priority based on link text and URL
-                has_sale_text = any(keyword in text.lower() for keyword in 
-                                  ['sale', 'deal', 'promo', 'clearance', 'offer', 'save', 'discount', 'shop now', 'click here', 'buy now'])
-                is_merchant_link = any(merchant in url.lower() for merchant in 
-                                     ['amazon', 'bestbuy', 'walmart', 'costco', 'canadiantire', 'loblaws', 'shoppers',
-                                      'homedepot', 'staples', 'thebay', 'sportchek', 'winners', 'marshalls',
-                                      'dollarama', 'rona', 'lowes', 'ikea', 'indigo', 'chapters'])
-                
-                valid_links.append({
-                    'url': url,
-                    'text': text,
-                    'has_sale_text': has_sale_text,
-                    'is_merchant_link': is_merchant_link
-                })
-            
-            if valid_links:
-                # Sort by merchant link and sale text priority
-                valid_links.sort(key=lambda x: (x['is_merchant_link'], x['has_sale_text']), reverse=True)
-                best_link = valid_links[0]
-                
-                print(f"  Selected: {best_link['text'][:30]} -> {best_link['url'][:60]}")
-                
-                # Handle Amazon links
-                if any(x in best_link['url'].lower() for x in ['amazon.ca', 'amazon.com']):
-                    return self.clean_and_add_affiliate_tag(best_link['url'], 'amazon'), 'amazon'
-                else:
-                    cleaned_url = self.clean_affiliate_link(best_link['url'])
-                    return cleaned_url, 'merchant' if cleaned_url else None
-            
-            return None, 'no_valid_links'
-            
-        except Exception as e:
-            print(f"  Error extracting affiliate link: {e}")
-            return None, 'error'
-    
-    def extract_affiliate_link_with_playwright(self, deal_url):
-        """Use Playwright to extract JavaScript links from SmartCanucks posts"""
-        from playwright.sync_api import sync_playwright
-        
-        try:
-            print(f"  Using Playwright to load: {deal_url}")
-            
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                
-                # Navigate and wait for content to load
-                page.goto(deal_url, wait_until='networkidle')
-                
-                # Look for links in the content area
-                content_selector = '.entry-content, article, .post-content'
-                
-                # Get all links that have onclick handlers or href attributes
-                links = page.evaluate("""
-                    () => {
-                        const contentArea = document.querySelector('.entry-content, article, .post-content');
-                        if (!contentArea) return [];
-                        
-                        const links = [];
-                        const anchors = contentArea.querySelectorAll('a');
-                        
-                        anchors.forEach(a => {
-                            let url = null;
-                            let text = a.textContent.trim();
-                            
-                            // Check href first
-                            if (a.href && a.href.startsWith('http')) {
-                                url = a.href;
-                            }
-                            // Check onclick for JavaScript links
-                            else if (a.onclick) {
-                                const onclickStr = a.onclick.toString();
-                                const urlMatch = onclickStr.match(/https?:\/\/[^'")]+/);
-                                if (urlMatch) {
-                                    url = urlMatch[0];
-                                }
-                            }
-                            
-                            if (url && text) {
-                                links.push({ url, text });
-                            }
-                        });
-                        
-                        return links;
-                    }
-                """)
-                
-                browser.close()
-                
-                print(f"  Playwright found {len(links)} links")
-                
-                # Filter and select best link
-                skip_domains = [
-                    'smartcanucks.ca', 'apps.apple.com', 'play.google.com', 
-                    'facebook.com', 'twitter.com', 'instagram.com', 'pinterest.com',
-                    'hotcanadadeals.ca', 'flipp.com'
+                # Look for images in content
+                img_selectors = [
+                    'img[class*="wp-image"]',
+                    '.entry-content img:first-of-type',
+                    'article img:first-of-type'
                 ]
                 
-                valid_links = []
-                for link in links:
-                    url = link['url']
-                    text = link['text']
-                    
-                    # Skip unwanted domains
-                    if any(domain in url.lower() for domain in skip_domains):
-                        continue
-                    
-                    # Skip shortened links
-                    if any(x in url.lower() for x in ['bit.ly/', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co']):
-                        continue
-                    
-                    print(f"  Valid link: {text[:30]} -> {url[:60]}")
-                    
-                    # Calculate priority
-                    has_sale_text = any(keyword in text.lower() for keyword in 
-                                      ['sale', 'deal', 'promo', 'clearance', 'offer', 'save', 'discount', 'shop now'])
-                    path_depth = len([p for p in url.split('/')[3:] if p])  # Count path segments after domain
-                    
-                    valid_links.append({
-                        'url': url,
-                        'text': text,
-                        'has_sale_text': has_sale_text,
-                        'path_depth': path_depth
-                    })
-                
-                if valid_links:
-                    # Sort by sale text and path depth
-                    valid_links.sort(key=lambda x: (x['has_sale_text'], x['path_depth']), reverse=True)
-                    best_link = valid_links[0]
-                    
-                    print(f"  Selected: {best_link['text'][:30]} -> {best_link['url']}")
-                    
-                    # Handle Amazon links
-                    if any(x in best_link['url'].lower() for x in ['amazon.ca', 'amazon.com']):
-                        return self.clean_and_add_affiliate_tag(best_link['url'], 'amazon'), 'amazon'
-                    else:
-                        cleaned_url = self.clean_affiliate_link(best_link['url'])
-                        return cleaned_url, 'other' if cleaned_url else None, 'unknown'
-                
-                return None, 'unknown'
-                
-        except Exception as e:
-            print(f"  Playwright error: {e}")
-            return None, 'error'
-    
-    def clean_and_add_affiliate_tag(self, amazon_url, platform='amazon'):
-        """Clean existing affiliate tags and add our tag to Amazon URL"""
-        parsed = urlparse(amazon_url)
-        params = parse_qs(parsed.query)
-        
-        # Remove any existing affiliate tags
-        affiliate_params = ['tag', 'ref', 'ref_', 'linkCode', 'linkId', 'camp', 'creative', 'creativeASIN']
-        for param in affiliate_params:
-            if param in params:
-                del params[param]
-        
-        # Add our affiliate tag
-        if platform == 'amazon':
-            params['tag'] = [self.affiliate_tag]
-        
-        # Rebuild query string
-        if params:
-            new_query = '&'.join([f"{k}={v[0]}" for k, v in params.items()])
-            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
-        else:
-            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-    
-    def clean_affiliate_link(self, url):
-        """Clean affiliate parameters from non-Amazon URLs - NEVER link back to SmartCanucks"""
-        # SAFETY CHECK: Never return unwanted URLs
-        unwanted_domains = ['smartcanucks.ca', 'apps.apple.com', 'play.google.com', 'hotcanadadeals.ca']
-        if any(domain in url.lower() for domain in unwanted_domains):
-            return None
-            
-        parsed = urlparse(url)
-        params = parse_qs(parsed.query)
-        
-        # Remove common affiliate parameters
-        affiliate_params = ['aff', 'affiliate', 'ref', 'referrer', 'source', 'utm_source', 'utm_medium', 'utm_campaign']
-        for param in affiliate_params:
-            if param in params:
-                del params[param]
-        
-        # Rebuild URL without affiliate params (ready for our future tags)
-        if params:
-            new_query = '&'.join([f"{k}={v[0]}" for k, v in params.items()])
-            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
-        else:
-            return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-    
-    def extract_featured_image_from_api(self, post_data):
-        """Extract featured image from WordPress REST API response"""
-        try:
-            # Check for embedded featured media (when using _embed parameter)
-            if '_embedded' in post_data and 'wp:featuredmedia' in post_data['_embedded']:
-                featured_media = post_data['_embedded']['wp:featuredmedia']
-                if featured_media and len(featured_media) > 0:
-                    media_item = featured_media[0]
-                    if 'source_url' in media_item:
-                        print(f"  Got featured image from API")
-                        return media_item['source_url']
-            
-            # Fallback: Check Yoast SEO data for og:image
-            if 'yoast_head_json' in post_data and 'og_image' in post_data['yoast_head_json']:
-                og_images = post_data['yoast_head_json']['og_image']
-                if og_images and len(og_images) > 0:
-                    if 'url' in og_images[0]:
-                        print(f"  📷 Got image from Yoast SEO")
-                        return og_images[0]['url']
-            
-            return None
-        except Exception as e:
-            print(f"Error extracting featured image from API: {e}")
-            return None
-    
-    def extract_product_image(self, deal_url):
-        """Extract the main product image from SmartCanucks post"""
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-            response = requests.get(deal_url, headers=headers, timeout=10)
-            if response.status_code != 200:
-                return None
-            
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Look for the main product image - SmartCanucks uses wp-image class
-            selectors = [
-                'img[class*="wp-image"]',  # WordPress images
-                '.entry-content img',
-                '.post-content img', 
-                'article img'
-            ]
-            
-            for selector in selectors:
-                content_img = soup.select_one(selector)
-                if content_img and content_img.get('src'):
-                    img_url = content_img.get('src')
-                    if img_url.startswith('//'):
-                        img_url = 'https:' + img_url
-                    elif img_url.startswith('/'):
-                        img_url = 'https://www.smartcanucks.ca' + img_url
-                    return img_url
-            
-            return None
-            
-        except Exception as e:
-            print(f"Error extracting product image: {e}")
-            return None
-    
-    def generate_price_and_discount(self, title):
-        """Generate realistic prices based on product type"""
+                for selector in img_selectors:
+                    img = soup.select_one(selector)
+                    if img and img.get('src'):
+                        img_url = img.get('src')
+                        if img_url.startswith('//'):
+                            img_url = 'https:' + img_url
+                        elif img_url.startswith('/'):
+                            img_url = self.base_url + img_url
+                        return img_url
+        except:
+            pass
+        return None
+
+    def generate_pricing(self, title):
+        """Generate realistic pricing based on title"""
         title_lower = title.lower()
         
-        if any(word in title_lower for word in ['electronics', 'tech', 'phone', 'laptop', 'tv', 'lego', 'game']):
-            current_price = random.uniform(199, 899)
-            original_price = current_price * random.uniform(1.3, 1.6)
-        elif any(word in title_lower for word in ['clothing', 'shirt', 'pants', 'dress', 'shoes', 'tight', 'under']):
-            current_price = random.uniform(19, 79)
-            original_price = current_price * random.uniform(1.2, 1.5)
-        elif any(word in title_lower for word in ['home', 'kitchen', 'furniture', 'decor', 'backpack', 'bag']):
-            current_price = random.uniform(29, 199)
-            original_price = current_price * random.uniform(1.3, 1.7)
+        if any(word in title_lower for word in ['electronics', 'tv', 'phone', 'laptop']):
+            price = round(random.uniform(299, 799), 2)
+            original = round(price * random.uniform(1.3, 1.8), 2)
+        elif any(word in title_lower for word in ['clothing', 'shoes', 'fashion']):
+            price = round(random.uniform(19, 89), 2)
+            original = round(price * random.uniform(1.2, 1.6), 2)
         else:
-            current_price = random.uniform(24, 89)
-            original_price = current_price * random.uniform(1.3, 1.6)
+            price = round(random.uniform(29, 149), 2)
+            original = round(price * random.uniform(1.3, 1.7), 2)
         
-        discount = int(((original_price - current_price) / original_price) * 100)
-        return round(current_price, 2), round(original_price, 2), discount
-    
+        discount = int(((original - price) / original) * 100)
+        return price, original, discount
+
     def generate_description(self, title):
         """Generate engaging descriptions"""
         templates = [
-            f"🔥 Amazing deal on {title}! Premium quality at an unbeatable price.",
-            f"⚡ Hot savings on {title}! Don't miss this incredible offer.",
+            f"🔥 Amazing deal on {title}! Don't miss out on these incredible savings.",
+            f"⚡ Hot savings on {title}! Limited time offer.",
             f"💫 Discover why thousands love {title}. Quality meets value!",
-            f"🏆 Top-rated {title} at a fantastic price. Your wallet will thank you!",
+            f"🏆 Top-rated {title} at an unbeatable price.",
             f"⭐ Customer favorite! {title} delivers exceptional value.",
-            f"🎯 Limited time offer on {title}. Act fast before it's gone!",
+            f"🎯 Limited time offer on {title}. Act fast!"
         ]
         return random.choice(templates)
-    
-    def fetch_wordpress_posts(self, base_url=None, limit=500):
-        """Fetch posts using WordPress REST API with pagination for 500+ posts"""
-        base_url = base_url or self.base_url
-        all_posts = []
-        page = 1
-        per_page = 100  # WordPress API max per request
+
+    def scrape_deals(self):
+        """Scrape deals from RSS feeds"""
+        all_deals = []
         
-        try:
-            while len(all_posts) < limit:
-                api_url = f"{base_url}/wp-json/wp/v2/posts"
-                params = {
-                    'per_page': per_page,
-                    'page': page,
-                    'orderby': 'date',
-                    'order': 'desc',
-                    '_embed': 'wp:featuredmedia'  # Include featured images in response
-                }
-                
-                print(f"Fetching page {page} of posts...")
-                response = requests.get(api_url, params=params, timeout=15)
-                
-                if response.status_code == 200:
-                    posts = response.json()
-                    if not posts:  # No more posts
-                        break
-                    
-                    all_posts.extend(posts)
-                    print(f"Got {len(posts)} posts, total: {len(all_posts)}")
-                    
-                    if len(posts) < per_page:  # Last page
-                        break
-                    
-                    page += 1
-                    time.sleep(0.5)  # Be nice to the API
-                else:
-                    print(f"WordPress API page {page} failed: {response.status_code}")
-                    break
-            
-            return all_posts[:limit]  # Return up to the limit
-            
-        except Exception as e:
-            print(f"WordPress API error: {e}, falling back to RSS")
-            return None
-    
-    def scrape_deals_from_wordpress(self, limit=100):
-        """Scrape deals directly from WordPress site using Beautiful Soup"""
-        print(f"Scraping deals from WordPress site...")
-        
-        deals = []
-        page = 1
-        per_page = 20  # Posts per page on the site
-        
-        # Get deals from specific deal categories and tags
-        # SmartCanucks uses both categories and tags for organizing deals
-        deal_sources = [
-            ('category', 'amazon-canada-deals'),
-            ('category', 'canadian-deals'),
-            ('category', 'walmart-canada'),
-            ('category', 'costco-canada'),
-            ('tag', 'amazon-deals'),
-            ('tag', 'walmart-deals'),
-            ('tag', 'best-buy-deals'),
-            ('tag', 'costco-deals'),
-            ('tag', 'online-shopping'),
-            ('tag', 'clearance')
+        # RSS feeds to try
+        feeds = [
+            'https://www.smartcanucks.ca/feed/',
+            'https://www.redflagdeals.com/rss/forum/9/',
+            'https://bargainmoose.ca/feed',
         ]
         
-        for source_type, source_name in deal_sources:
-            if len(deals) >= limit:
-                break
+        for feed_url in feeds:
+            print(f"Processing feed: {feed_url}")
+            try:
+                feed = feedparser.parse(feed_url)
+                print(f"Found {len(feed.entries)} entries")
                 
-            page = 1
-            while len(deals) < limit and page <= 3:  # Max 3 pages per source
-                if source_type == 'category':
-                    url = f"https://www.smartcanucks.ca/category/{source_name}/page/{page}/"
-                else:  # tag
-                    url = f"https://www.smartcanucks.ca/tag/{source_name}/page/{page}/"
-                
-                # Also try main page for first source
-                if source_name == deal_sources[0][1] and page == 1:
-                    urls_to_try = [
-                        url,
-                        "https://www.smartcanucks.ca/"
-                    ]
-                else:
-                    urls_to_try = [url]
-                
-                found_posts = False
-                for url in urls_to_try:
-                    try:
-                        print(f"Checking page {page}: {url}")
-                        response = requests.get(url, timeout=15)
-                        if response.status_code != 200:
-                            continue
-                        
-                        soup = BeautifulSoup(response.content, 'html.parser')
-                        
-                        # Look for post links
-                        post_links = soup.find_all('a', href=True)
-                        post_urls = []
-                        
-                        for link in post_links:
-                            href = link['href']
-                            # Match post pattern: /YYYY/MM/DD/post-name/
-                            if re.match(r'https://www\.smartcanucks\.ca/\d{4}/\d{2}/\d{2}/.+/', href):
-                                if href not in [deal.get('source_url') for deal in deals]:
-                                    post_urls.append(href)
-                        
-                        if post_urls:
-                            found_posts = True
-                            print(f"Found {len(post_urls)} posts on page {page}")
-                            
-                            for post_url in post_urls[:limit - len(deals)]:
-                                if len(deals) >= limit:
-                                    break
-                                    
-                                # Extract post title from URL
-                                title_match = re.search(r'/([^/]+)/$', post_url)
-                                if title_match:
-                                    title = title_match.group(1).replace('-', ' ').title()
-                                else:
-                                    title = f"Deal {len(deals) + 1}"
-                                
-                                print(f"Processing: {title[:50]}...")
-                                
-                                # Create unique ID
-                                deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
-                                
-                                # Extract actual affiliate link from post
-                                affiliate_url, link_type = self.extract_affiliate_link(post_url)
-                                
-                                # If no link found, try title mapping as fallback
-                                if not affiliate_url:
-                                    affiliate_url, link_type = self.get_merchant_url_from_title(title)
-                                
-                                product_image = self.extract_product_image(post_url)
-                                
-                                # Generate pricing
-                                current_price, original_price, discount = self.generate_price_and_discount(title)
-                                
-                                # Generate description
-                                description = self.generate_description(title)
-                                
-                                deal = {
-                                    'id': deal_id,
-                                    'title': title,
-                                    'imageUrl': product_image or '/placeholder-deal.svg',
-                                    'price': current_price,
-                                    'originalPrice': original_price,
-                                    'discountPercent': discount,
-                                    'category': 'General',
-                                    'description': description,
-                                    'affiliateUrl': affiliate_url,
-                                    'featured': len(deals) < 5,  # First 5 are featured
-                                    'dateAdded': datetime.now().strftime('%Y-%m-%d'),
-                                    'source_url': post_url
-                                }
-                                
-                                deals.append(deal)
-                                time.sleep(0.3)  # Be nice to the server
-                            
-                            break  # Found posts, no need to try other URLs
+                for i, entry in enumerate(feed.entries[:self.limit//len(feeds)]):
+                    if len(all_deals) >= self.limit:
+                        break
                     
-                    except Exception as e:
-                        print(f"Error scraping page {page}: {e}")
-                        continue
-            
-                if not found_posts:
-                    print(f"No posts found in {source_name} page {page}")
-                    break
+                    title = entry.title
+                    print(f"Processing: {title[:50]}...")
                     
-                page += 1
-        
-        return deals
-    
-    def parse_rss_and_generate_json(self, feed_url=None, limit=None):
-        """Use WordPress REST API to get more posts than RSS limit"""
-        feed_url = feed_url or f"{self.base_url}/feed/"
-        limit = limit or self.limit
-        print(f"Fetching posts via WordPress REST API...")
-        
-        # Try WordPress REST API first
-        wp_posts = self.fetch_wordpress_posts(limit=limit)
-        deals = []
-        
-        if wp_posts:
-            print(f"Found {len(wp_posts)} posts via REST API")
-            for i, post in enumerate(wp_posts):
-                if len(deals) >= limit:
-                    break
+                    # Generate deal data
+                    deal_id = re.sub(r'[^a-z0-9]', '', title.lower())[:20] or f"deal{i}"
+                    affiliate_url = self.get_merchant_url(title)
+                    price, original_price, discount = self.generate_pricing(title)
+                    description = self.generate_description(title)
                     
-                title = post.get('title', {}).get('rendered', f'Deal {i+1}')
-                post_url = post.get('link', '')
-                
-                print(f"Processing: {title[:50]}...")
-                
-                # Create unique ID
-                deal_id = re.sub(r'[^a-zA-Z0-9]', '', title.lower())[:20]
-                
-                # Extract actual affiliate link from post
-                affiliate_url, link_type = self.extract_affiliate_link(post_url)
-                
-                # If no link found, try title mapping as fallback
-                if not affiliate_url:
-                    affiliate_url, link_type = self.get_merchant_url_from_title(title)
-                
-                # Extract image - try API first, then scraping
-                product_image = self.extract_featured_image_from_api(post)
-                if not product_image:
-                    product_image = self.extract_product_image(post_url)
-                    print(f"  Scraped image from post content")
-                
-                # SAFETY CHECK: Never use SmartCanucks URLs as affiliate links
-                if affiliate_url and 'smartcanucks.ca' in affiliate_url.lower():
-                    print(f"SKIPPING: SmartCanucks URL detected as affiliate link for '{title[:30]}...'")
-                    continue
-                
-                # If no affiliate link found, skip this deal
-                if not affiliate_url:
-                    print(f"SKIPPING: No merchant link found for '{title[:30]}...'")
-                    continue
-                
-                # Generate pricing
-                current_price, original_price, discount = self.generate_price_and_discount(title)
-                
-                # Generate description
-                description = self.generate_description(title)
-                
-                # Create and validate deal with Pydantic
-                try:
-                    deal_data = {
+                    # Try to get image
+                    image_url = self.extract_image_from_post(entry.link) if hasattr(entry, 'link') else None
+                    if not image_url:
+                        image_url = f"https://via.placeholder.com/300x200/4285f4/ffffff?text={title.split()[0]}"
+                    
+                    deal = {
                         'id': deal_id,
                         'title': title,
-                        'imageUrl': product_image or '/placeholder-deal.svg',
-                        'price': current_price,
+                        'imageUrl': image_url,
+                        'price': price,
                         'originalPrice': original_price,
                         'discountPercent': discount,
                         'category': 'General',
                         'description': description,
                         'affiliateUrl': affiliate_url,
-                        'featured': len(deals) < 5,  # First 5 are featured
+                        'featured': i < 3,  # First 3 from each feed are featured
                         'dateAdded': datetime.now().strftime('%Y-%m-%d')
                     }
                     
-                    # Validate with Pydantic
-                    validated_deal = Deal(**deal_data)
-                    # Convert to dict and ensure affiliateUrl is string
-                    deal_dict = validated_deal.model_dump()
-                    deal_dict['affiliateUrl'] = str(deal_dict['affiliateUrl'])
-                    deals.append(deal_dict)
-                    print(f"Valid deal: {title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
+                    all_deals.append(deal)
+                    print(f"Added: {title[:30]}... -> {affiliate_url[:40]}...")
                     
-                except ValueError as e:
-                    print(f"Invalid deal '{title[:30]}...': {e}")
-                    continue
-                time.sleep(0.2)  # Be nice to the server
+                    time.sleep(0.3)  # Be respectful
+                    
+            except Exception as e:
+                print(f"Error processing feed {feed_url}: {e}")
+                continue
         
-        if len(deals) < 10:  # Fallback to RSS if REST API failed
-            print(f"WordPress scraping got {len(deals)} deals, falling back to RSS...")
-            feed = feedparser.parse(feed_url)
-            deals = []
-            
-            count = 0
-            batch_size = 10
-            
-            for entry in feed.entries:
-                if count >= limit:
-                    break
-                
-                # Sleep between batches to be respectful
-                if count > 0 and count % batch_size == 0:
-                    print(f"  Processed {count} deals, sleeping 3 seconds before next batch...")
-                    time.sleep(3)
-                    
-                try:
-                    print(f"Processing: {entry.title[:50]}...")
-                except UnicodeEncodeError:
-                    print(f"Processing: {entry.title[:30].encode('ascii', 'replace').decode('ascii')}...")
-                
-                # Create unique ID
-                deal_id = re.sub(r'[^a-zA-Z0-9]', '', entry.title.lower())[:20]
-                
-                # Extract actual affiliate link from post
-                affiliate_url, link_type = self.extract_affiliate_link(entry.link)
-                
-                # If no link found, try title mapping as fallback
-                if not affiliate_url:
-                    affiliate_url, link_type = self.get_merchant_url_from_title(entry.title)
-                
-                product_image = self.extract_product_image(entry.link)
-                if product_image:
-                    print(f"  Got image: {product_image[:60]}...")
-                else:
-                    print(f"  No image found")
-                
-                # SAFETY CHECK: Never use SmartCanucks URLs as affiliate links
-                if affiliate_url and 'smartcanucks.ca' in affiliate_url.lower():
-                    print(f"SKIPPING RSS: SmartCanucks URL detected as affiliate link for '{entry.title[:30]}...'")
-                    continue
-                
-                # If no merchant link found, skip this deal
-                if not affiliate_url:
-                    print(f"SKIPPING RSS: No merchant link found for '{entry.title[:30]}...'")
-                    continue
-                
-                # Generate pricing
-                current_price, original_price, discount = self.generate_price_and_discount(entry.title)
-                
-                # Generate description
-                description = self.generate_description(entry.title)
-                
-                # Create and validate deal with Pydantic
-                try:
-                    deal_data = {
-                        'id': deal_id,
-                        'title': entry.title,
-                        'imageUrl': product_image or '/placeholder-deal.svg',
-                        'price': current_price,
-                        'originalPrice': original_price,
-                        'discountPercent': discount,
-                        'category': 'General',
-                        'description': description,
-                        'affiliateUrl': affiliate_url,  # NEVER fallback to entry.link
-                        'featured': count < 5,  # First 5 are featured
-                        'dateAdded': datetime.now().strftime('%Y-%m-%d')
-                    }
-                    
-                    # Validate with Pydantic
-                    validated_deal = Deal(**deal_data)
-                    # Convert to dict and ensure affiliateUrl is string
-                    deal_dict = validated_deal.model_dump()
-                    deal_dict['affiliateUrl'] = str(deal_dict['affiliateUrl'])
-                    deals.append(deal_dict)
-                    print(f"Valid RSS deal: {entry.title[:30]}... -> {affiliate_url[:50]}... [{link_type}]")
-                    
-                except ValueError as e:
-                    print(f"Invalid RSS deal '{entry.title[:30]}...': {e}")
-                    continue
-                
-                count += 1
-                time.sleep(1.0)  # Be nice to the server, avoid rate limiting
-        
-        # Write to deals.json
+        return all_deals
+
+    def save_deals(self, deals):
+        """Save deals to JSON file"""
         output_path = '../public/deals.json'
-        with open(output_path, 'w') as f:
-            json.dump(deals, f, indent=2)
         
-        print(f"Generated {len(deals)} deals in {output_path}")
+        print(f"Saving {len(deals)} deals to {output_path}")
+        
+        # Save deals
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(deals, f, indent=2, ensure_ascii=False)
+        
+        print(f"Saved {len(deals)} deals successfully!")
         return deals
 
 def main():
-    scraper = SimpleScraper()
-    scraper.parse_rss_and_generate_json()
+    scraper = SimplifiedScraper()
+    deals = scraper.scrape_deals()
+    scraper.save_deals(deals)
+    print(f"\nGenerated {len(deals)} deals total!")
 
 if __name__ == "__main__":
     main()

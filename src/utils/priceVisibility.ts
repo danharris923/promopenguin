@@ -14,13 +14,13 @@ export function shouldShowPrice(dealId: string | number): boolean {
 
 export function getCheckPriceMessages(): string[] {
   return [
-    "Check Price on Amazon",
-    "See Price at Amazon", 
-    "View Amazon Price",
+    "Check Price",
+    "See Current Price", 
+    "View Deal Price",
     "Get Best Price",
     "Check Current Price",
     "See Deal Price",
-    "Amazon Price Check",
+    "Price Check",
     "View Special Price"
   ];
 }

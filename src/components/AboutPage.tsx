@@ -217,7 +217,7 @@ const AboutPage: React.FC = () => {
               or practices of these third-party sites. Please review their terms before making purchases.
             </p>
             <p>
-              <strong>No Warranties:</strong> While we strive to provide accurate deal information, SavingsGuru.cc makes no warranties about the completeness, 
+              <strong>No Warranties:</strong> While we strive to provide accurate deal information, PromoPenguin makes no warranties about the completeness, 
               reliability, or accuracy of this information. Use of our site is at your own risk.
             </p>
           </div>

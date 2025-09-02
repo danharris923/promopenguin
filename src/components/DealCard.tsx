@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Deal } from '../types/Deal';
-import { getPriceDisplay } from '../utils/dealUtils';
-import { getPriceVisibility } from '../utils/priceVisibility';
 
 interface DealCardProps {
   deal: Deal;
@@ -16,8 +14,6 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
   const bgColor = bgColors[colorIndex % bgColors.length];
   
   const isLarge = variant === 'featured';
-  const priceDisplay = getPriceDisplay(deal.originalPrice, deal.price, deal.discountPercent);
-  const priceVisibility = getPriceVisibility(deal.id);
   
   const handleCardClick = () => {
     if (window.innerWidth < 768) { // Mobile - center modal
@@ -51,13 +47,13 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
   if (isExpanded && window.innerWidth < 768) {
     return (
       <>
-        {/* Backdrop - More transparent to show background */}
+        {/* Backdrop */}
         <div 
           className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-50 animate-in fade-in duration-300"
           onClick={() => setIsExpanded(false)}
         />
         
-        {/* Center Modal - More padding to show background */}
+        {/* Center Modal */}
         <div className="fixed inset-0 z-50 flex items-center justify-center p-8 animate-in slide-in-from-bottom-6 duration-300">
           <div className={`${bgColor} w-full max-w-xs max-h-[75vh] rounded-3xl shadow-2xl overflow-hidden`}>
             {/* Header */}
@@ -77,13 +73,6 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
             <div className="overflow-y-auto max-h-full">
               {/* Image Section */}
               <div className="relative bg-penguin-white">
-                {/* Discount badge */}
-                {deal.discountPercent > 0 && (
-                  <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold z-10 shadow-lg">
-                    {deal.discountPercent}% OFF
-                  </div>
-                )}
-                
                 <div className="aspect-square">
                   <img 
                     src={deal.imageUrl} 
@@ -102,29 +91,19 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
                 
                 <p className="text-sm text-gray-700 mb-4 leading-relaxed">{deal.description}</p>
                 
-                {/* Price Section */}
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-2 mb-3">
-                    <p className="text-2xl font-bold text-penguin-ice-blue-dark">{priceDisplay.current}</p>
-                    {priceDisplay.original && (
-                      <p className="text-lg text-gray-500 line-through">{priceDisplay.original}</p>
-                    )}
-                  </div>
-                  
-                  {/* Action Button */}
-                  <a
-                    href={deal.affiliateUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="block w-full bg-penguin-ice-blue text-penguin-black py-3 rounded-xl text-center font-semibold hover:bg-penguin-ice-blue-dark hover:text-white transition-colors shadow-sm"
-                  >
-                    Shop Now
-                  </a>
-                </div>
+                {/* Action Button */}
+                <a
+                  href={deal.affiliateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="block w-full bg-gradient-to-r from-penguin-ice-blue to-blue-400 text-penguin-black py-3 rounded-xl text-center font-bold hover:from-blue-400 hover:to-blue-500 transition-colors shadow-lg"
+                >
+                  🛒 Shop This Deal
+                </a>
               
                 {/* Tags */}
-                <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200">
+                <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200 mt-4">
                   {deal.category && (
                     <span className="bg-penguin-charcoal text-penguin-white px-2 py-1 rounded-full text-xs">
                       {deal.category}
@@ -156,14 +135,6 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
       onClick={handleCardClick}
     >
       <div className="relative h-full flex flex-col">
-        {/* Discount percentage badge */}
-        {deal.discountPercent > 0 && (
-          <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-10 shadow-lg">
-            {deal.discountPercent}% OFF
-          </div>
-        )}
-        
-        
         <div className={`relative ${isLarge ? 'h-64' : 'h-48'} overflow-hidden`}>
           <img 
             src={deal.imageUrl} 
@@ -180,45 +151,19 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
             {deal.title}
           </h3>
           
-          <div className="flex items-end justify-between">
-            {priceVisibility.showPrice ? (
-              // Show price for ~10% of deals
-              <>
-                <div>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold text-penguin-ice-blue-dark">{priceDisplay.current}</p>
-                    {priceDisplay.original && (
-                      <p className="text-base text-gray-500 line-through">{priceDisplay.original}</p>
-                    )}
-                  </div>
-                </div>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(deal.affiliateUrl, '_blank');
-                  }}
-                  className="bg-penguin-ice-blue text-penguin-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-penguin-ice-blue-dark hover:text-white transition-colors shadow-sm"
-                >
-                  Shop Now
-                </button>
-              </>
-            ) : (
-              // Show "Check Price" button for ~80% of deals (badge already shown at top)
-              <div className="w-full">
-                <div className="text-center mb-3">
-                  <p className="text-sm text-penguin-black leading-tight">{deal.description}</p>
-                </div>
-                <a
-                  href={deal.affiliateUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="block w-full bg-gradient-to-r from-penguin-ice-blue to-penguin-ice-blue-dark text-penguin-black py-3 px-4 rounded-xl text-center font-bold hover:from-penguin-ice-blue-dark hover:to-penguin-charcoal hover:text-white transition-colors shadow-lg"
-                >
-                  {priceVisibility.checkPriceMessage}
-                </a>
-              </div>
-            )}
+          <div className="w-full">
+            <div className="text-center mb-3">
+              <p className="text-sm text-penguin-black leading-tight">{deal.description.slice(0, 80)}...</p>
+            </div>
+            <a
+              href={deal.affiliateUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="block w-full bg-gradient-to-r from-penguin-ice-blue to-blue-400 text-penguin-black py-3 px-4 rounded-xl text-center font-bold hover:from-blue-400 hover:to-blue-500 transition-colors shadow-lg"
+            >
+              🛒 Shop This Deal
+            </a>
           </div>
         </div>
       </div>
