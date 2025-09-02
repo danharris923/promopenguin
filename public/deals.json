@@ -1,28 +1,28 @@
 [
   {
+    "id": "shoppersdrugmartcana",
+    "title": "Shoppers Drug Mart Canada Family and Friends Event: Save 20% on Regular Priced Items September 2nd & 3rd",
+    "imageUrl": "/placeholder-deal.svg",
+    "price": 41.68,
+    "originalPrice": 56.37,
+    "discountPercent": 26,
+    "category": "General",
+    "description": "\ud83c\udfaf Limited time offer on Shoppers Drug Mart Canada Family and Friends Event: Save 20% on Regular Priced Items September 2nd & 3rd. Act fast before it's gone!",
+    "affiliateUrl": "https://shoppersdrugmart.ca/",
+    "featured": true,
+    "dateAdded": "2025-09-02"
+  },
+  {
     "id": "bestbuycanadalabourd",
     "title": "Best Buy Canada: Labour Day Sale Deals",
     "imageUrl": "/placeholder-deal.svg",
-    "price": 50.77,
-    "originalPrice": 75.7,
-    "discountPercent": 32,
+    "price": 59.86,
+    "originalPrice": 79.09,
+    "discountPercent": 24,
     "category": "General",
-    "description": "\ud83d\udd25 Amazing deal on Best Buy Canada: Labour Day Sale Deals! Premium quality at an unbeatable price.",
+    "description": "\ud83c\udfc6 Top-rated Best Buy Canada: Labour Day Sale Deals at a fantastic price. Your wallet will thank you!",
     "affiliateUrl": "https://bestbuy.ca/",
     "featured": true,
-    "dateAdded": "2025-09-01"
-  },
-  {
-    "id": "amazoncanadadealssav",
-    "title": "Amazon Canada Deals: Save 50% on TROND Surge Protector Power Bar USB C & 5 Outlets, with Promo Code + More Offers",
-    "imageUrl": "/placeholder-deal.svg",
-    "price": 47.03,
-    "originalPrice": 73.32,
-    "discountPercent": 35,
-    "category": "General",
-    "description": "\u26a1 Hot savings on Amazon Canada Deals: Save 50% on TROND Surge Protector Power Bar USB C & 5 Outlets, with Promo Code + More Offers! Don't miss this incredible offer.",
-    "affiliateUrl": "https://amazon.ca/",
-    "featured": true,
-    "dateAdded": "2025-09-01"
+    "dateAdded": "2025-09-02"
   }
 ]
