@@ -71,3 +71,9 @@ desktop.ini
 # Claude
 .claude/
 nul
+
+# SavingsGuru reference files (contains sensitive data)
+savingsguru.cc-main/
+savingsguru.cc-main.zip
+**/savingsguru*
+**/CONTEXT_PROMPT.md
