@@ -33,6 +33,13 @@ const Sidebar: React.FC<SidebarProps> = ({ topDeals, onDealClick }) => {
     },
     // Add more news items here as needed
     {
+      title: "Walmart FLASH SALE ⚡",
+      url: "https://shopstyle.it/l/cugdG",
+      logo: "https://logo.clearbit.com/walmart.ca",
+      fallbackText: "W",
+      timeAgo: "1 hour ago"
+    },
+    {
       title: "Best Buy Boxing Day Preview Sale 📦",
       url: "https://bestbuy.ca/?tag=promopenguin-20",
       logo: "https://logo.clearbit.com/bestbuy.ca",

@@ -26,6 +26,13 @@ class SimplifiedScraper:
 
     def extract_deal_url_from_post(self, post_url, title):
         """Extract the actual deal/sale URL from the blog post"""
+        title_lower = title.lower()
+        
+        # Override specific merchants with our affiliate links
+        if any(word in title_lower for word in ['walmart']):
+            print(f"  Using Walmart affiliate override")
+            return 'https://shopstyle.it/l/cuge4'
+        
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (compatible; PromoBot/1.0)'}
             response = requests.get(post_url, headers=headers, timeout=10)
@@ -145,6 +152,10 @@ class SimplifiedScraper:
         if any(word in title_lower for word in ['amazon', 'amzn']):
             return f'https://amazon.ca/?tag={self.affiliate_tag}'
         
+        # Walmart deals go to our ShopStyle affiliate link
+        if any(word in title_lower for word in ['walmart']):
+            return 'https://shopstyle.it/l/cuge4'
+        
         # Clean merchant homepages
         merchant_map = {
             'shoppers drug mart': 'https://shoppersdrugmart.ca/',
@@ -181,35 +192,64 @@ class SimplifiedScraper:
         return 'https://smartcanucks.ca/'  # Last resort fallback
 
     def extract_image_from_post(self, post_url):
-        """Extract featured image from blog post"""
+        """Extract the largest/best product image from blog post"""
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (compatible; PromoBot/1.0)'}
             response = requests.get(post_url, headers=headers, timeout=10)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
                 
-                # Look for featured image first
-                featured_selectors = [
-                    'meta[property="og:image"]',
-                    '.wp-post-image',
-                    '.featured-image img',
-                    '.entry-content img:first-of-type'
-                ]
+                # Try Open Graph image first (usually the best)
+                og_image = soup.select_one('meta[property="og:image"]')
+                if og_image and og_image.get('content'):
+                    og_url = og_image.get('content')
+                    if 'smartcanucks-01.png' not in og_url and 'logo' not in og_url.lower():
+                        return og_url
                 
-                for selector in featured_selectors:
-                    if selector.startswith('meta'):
-                        meta = soup.select_one(selector)
-                        if meta and meta.get('content'):
-                            return meta.get('content')
-                    else:
-                        img = soup.select_one(selector)
-                        if img and img.get('src'):
-                            img_url = img.get('src')
-                            if img_url.startswith('//'):
-                                img_url = 'https:' + img_url
-                            elif img_url.startswith('/'):
-                                img_url = self.base_url + img_url
-                            return img_url
+                # Look for WordPress featured image
+                wp_image = soup.select_one('.wp-post-image')
+                if wp_image and wp_image.get('src'):
+                    img_url = wp_image.get('src')
+                    if 'smartcanucks-01.png' not in img_url and 'logo' not in img_url.lower():
+                        if img_url.startswith('//'):
+                            img_url = 'https:' + img_url
+                        elif img_url.startswith('/'):
+                            img_url = self.base_url + img_url
+                        return img_url
+                
+                # Look for largest image in content that's not a logo
+                content_images = soup.select('.entry-content img, .post-content img, article img')
+                best_image = None
+                best_size = 0
+                
+                for img in content_images:
+                    img_url = img.get('src', '')
+                    if not img_url or 'logo' in img_url.lower() or 'smartcanucks-01.png' in img_url:
+                        continue
+                    
+                    # Try to estimate image size from URL or attributes
+                    width = img.get('width', '0')
+                    height = img.get('height', '0')
+                    
+                    try:
+                        size = int(width) * int(height) if width.isdigit() and height.isdigit() else 0
+                    except:
+                        size = 0
+                    
+                    # Look for size indicators in filename
+                    if any(x in img_url for x in ['-500x', '-400x', '-300x', '-600x']):
+                        size = 500  # Boost priority for explicitly sized images
+                    
+                    if size > best_size:
+                        best_size = size
+                        best_image = img_url
+                
+                if best_image:
+                    if best_image.startswith('//'):
+                        best_image = 'https:' + best_image
+                    elif best_image.startswith('/'):
+                        best_image = self.base_url + best_image
+                    return best_image
                         
         except Exception as e:
             print(f"  Error extracting image: {e}")
