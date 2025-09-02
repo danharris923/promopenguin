@@ -101,7 +101,7 @@ const Flyers: React.FC = () => {
     return null;
   };
 
-  // Enhanced conversion with detailed product information extraction
+  // Enhanced conversion with detailed product information extraction - ONE FLYER PER STORE
   const convertFlippDataToFlyers = async (flippItems: any[]): Promise<Flyer[]> => {
     const storeGroups: { [key: string]: any[] } = {};
     
@@ -109,22 +109,35 @@ const Flyers: React.FC = () => {
     
     // Group items by store with better merchant identification
     flippItems.forEach(item => {
-      const storeName = item.merchant?.name || 
+      let storeName = item.merchant?.name || 
                        item.store_name || 
                        item.retailer?.name || 
                        'Unknown Store';
+      
+      // Normalize store names to prevent duplicates
+      storeName = storeName.trim().replace(/\s+/g, ' ');
+      
+      // Group common store variations together
+      if (storeName.toLowerCase().includes('walmart')) storeName = 'Walmart';
+      else if (storeName.toLowerCase().includes('loblaws')) storeName = 'Loblaws';
+      else if (storeName.toLowerCase().includes('no frills')) storeName = 'No Frills';
+      else if (storeName.toLowerCase().includes('canadian tire')) storeName = 'Canadian Tire';
+      else if (storeName.toLowerCase().includes('metro')) storeName = 'Metro';
+      else if (storeName.toLowerCase().includes('sobeys')) storeName = 'Sobeys';
+      else if (storeName.toLowerCase().includes('shoppers')) storeName = 'Shoppers Drug Mart';
+      
       if (!storeGroups[storeName]) {
         storeGroups[storeName] = [];
       }
       storeGroups[storeName].push(item);
     });
     
-    console.log(`Grouped items into ${Object.keys(storeGroups).length} stores:`, Object.keys(storeGroups));
+    console.log(`Grouped items into ${Object.keys(storeGroups).length} unique stores:`, Object.keys(storeGroups));
     
-    // Convert to flyer format with enhanced data extraction
+    // Convert to flyer format - ONE FLYER PER STORE with ALL items for that store
     const flyers = await Promise.all(
-      Object.entries(storeGroups).map(async ([storeName, items], index) => {
-        const firstItem = items[0];
+      Object.entries(storeGroups).map(async ([storeName, allStoreItems]) => {
+        const firstItem = allStoreItems[0];
         const storeId = storeName.toLowerCase().replace(/[^a-z0-9]/g, '');
         
         // Try to get enhanced store details
@@ -137,17 +150,17 @@ const Flyers: React.FC = () => {
                                  `https://via.placeholder.com/60x60/0071ce/ffffff?text=${storeName.charAt(0)}`;
         
         return {
-          id: `${storeId}-${Date.now()}-${index}`,
+          id: `${storeId}-flyer-${Date.now()}`,
           storeName,
           storeId,
           storeLogo: enhancedStoreLogo,
           validFrom: firstItem.valid_from || new Date().toISOString().split('T')[0],
           validUntil: firstItem.valid_to || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          pageCount: Math.ceil(items.length / 8), // Better pagination
+          pageCount: Math.ceil(allStoreItems.length / 8), // Better pagination based on all items
           previewImage: firstItem.flyer_image_url || 
                        firstItem.store_flyer_url ||
                        `https://via.placeholder.com/300x400/f8f8f8/333?text=${encodeURIComponent(storeName)}+Weekly+Flyer`,
-          items: items.map((item, itemIndex) => {
+          items: allStoreItems.map((item, itemIndex) => {
             // Enhanced price extraction
             const salePrice = parseFloat(item.sale_price || item.price || item.current_price || '0');
             const originalPrice = parseFloat(item.price || item.original_price || item.regular_price || salePrice || '0');
@@ -185,7 +198,9 @@ const Flyers: React.FC = () => {
                        'General',
               description: description
             };
-          }).sort((a, b) => b.discountPercent - a.discountPercent) // Sort by highest discount first
+          })
+          .sort((a, b) => b.discountPercent - a.discountPercent) // Sort by highest discount first
+          .slice(0, 20) // Limit to 20 best items per store to avoid overcrowding
         };
       })
     );
