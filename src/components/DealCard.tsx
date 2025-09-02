@@ -37,10 +37,42 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
   }, [isExpanded]);
   
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Image failed to load:', deal.imageUrl);
+    const img = e.currentTarget;
+    
+    // Try different fallback strategies for mobile compatibility
+    if (!img.dataset.fallbackAttempt) {
+      img.dataset.fallbackAttempt = '1';
+      
+      // First: Try removing query parameters that might cause mobile issues
+      const cleanUrl = deal.imageUrl.split('?')[0];
+      if (cleanUrl !== deal.imageUrl) {
+        img.src = cleanUrl;
+        return;
+      }
+      
+      // Second: Try HTTPS if it was HTTP
+      if (deal.imageUrl.startsWith('http://')) {
+        img.src = deal.imageUrl.replace('http://', 'https://');
+        return;
+      }
     }
-    e.currentTarget.src = '/placeholder-deal.svg';
+    
+    if (!img.dataset.fallbackAttempt2) {
+      img.dataset.fallbackAttempt2 = '1';
+      
+      // Third: Try smaller size variant for mobile
+      const smallerUrl = deal.imageUrl.replace(/[-_]\d+x\d+/, '-300x300');
+      if (smallerUrl !== deal.imageUrl) {
+        img.src = smallerUrl;
+        return;
+      }
+    }
+    
+    // Final fallback: Use a colorful SVG placeholder
+    const colors = ['#93C4D8', '#A8E6CF', '#C8B6F6', '#81D4E3', '#FFB3D9'];
+    const colorIndex = deal.id.charCodeAt(0) % colors.length;
+    const bgColor = colors[colorIndex];
+    img.src = `data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='${bgColor}'/%3E%3Cstop offset='100%25' stop-color='%23ffffff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='400' fill='url(%23grad)'/%3E%3Ctext x='50%25' y='45%25' text-anchor='middle' fill='%23333' font-family='sans-serif' font-size='18' font-weight='bold'%3E🛒%3C/text%3E%3Ctext x='50%25' y='60%25' text-anchor='middle' fill='%23333' font-family='sans-serif' font-size='14'%3E${encodeURIComponent(deal.title.substring(0, 15))}%3C/text%3E%3C/svg%3E`;
   };
   
   // Mobile center-sliding modal
@@ -81,6 +113,9 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
                     onError={handleImageError}
                     loading="lazy"
                     referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    decoding="async"
+                    style={{ maxWidth: '100%', height: 'auto' }}
                   />
                 </div>
               </div>
@@ -143,6 +178,9 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
             onError={handleImageError}
             loading="lazy"
             referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            decoding="async"
+            style={{ maxWidth: '100%', height: 'auto' }}
           />
         </div>
         
