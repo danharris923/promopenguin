@@ -472,9 +472,34 @@ class SimplifiedScraper:
         
         return all_deals
 
+    def load_existing_deals(self):
+        """Load existing deals to preserve custom images"""
+        output_path = '../public/deals.json'
+        try:
+            with open(output_path, 'r', encoding='utf-8') as f:
+                existing_deals = json.load(f)
+                # Create a mapping of deal ID to image URL for screenshot images
+                image_map = {}
+                for deal in existing_deals:
+                    # Only preserve SmartCanucks screenshot images
+                    if 'Screenshot' in deal.get('imageUrl', ''):
+                        image_map[deal['id']] = deal['imageUrl']
+                return image_map
+        except:
+            return {}
+
     def save_deals(self, deals):
         """Save deals to JSON file"""
         output_path = '../public/deals.json'
+        
+        # Load existing screenshot images
+        existing_images = self.load_existing_deals()
+        
+        # Preserve existing screenshot images
+        for deal in deals:
+            if deal['id'] in existing_images:
+                print(f"Preserving screenshot image for: {deal['title'][:30]}...")
+                deal['imageUrl'] = existing_images[deal['id']]
         
         print(f"Saving {len(deals)} deals to {output_path}")
         
