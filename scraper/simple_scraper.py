@@ -228,6 +228,63 @@ class SimplifiedScraper:
         
         return 'https://www.smartcanucks.ca/'  # Last resort fallback
 
+    def create_individual_flyer_cards(self, original_title, entry):
+        """Create individual deal cards for each store mentioned in flyer roundups"""
+        stores = [
+            {'name': 'Costco', 'url': 'https://www.costco.ca/', 'emoji': '🛒'},
+            {'name': 'Walmart', 'url': 'https://shopstyle.it/l/cuge4', 'emoji': '🛍️'}, # Your affiliate link
+            {'name': 'No Frills', 'url': 'https://www.nofrills.ca/', 'emoji': '🛒'},
+            {'name': 'Giant Tiger', 'url': 'https://www.gianttiger.com/', 'emoji': '🐅'},
+            {'name': 'Sobeys', 'url': 'https://www.sobeys.com/', 'emoji': '🛒'},
+            {'name': 'Metro', 'url': 'https://www.metro.ca/', 'emoji': '🛒'},
+            {'name': 'Loblaws', 'url': 'https://www.loblaws.ca/', 'emoji': '🛒'},
+            {'name': 'Shoppers Drug Mart', 'url': 'https://www.shoppersdrugmart.ca/', 'emoji': '💊'},
+            {'name': 'Canadian Tire', 'url': 'https://www.canadiantire.ca/', 'emoji': '🔧'},
+            {'name': 'Best Buy', 'url': 'https://bestbuy.ca/?tag=promopenguin-20', 'emoji': '📱'}, # Your affiliate
+        ]
+        
+        deals = []
+        base_image = self.extract_image_from_post(entry.link) if hasattr(entry, 'link') else None
+        
+        for store in stores:
+            store_name = store['name'].lower()
+            if store_name in original_title.lower() or any(word in original_title.lower() for word in store_name.split()):
+                price, original_price, discount = self.generate_pricing(f"{store['name']} flyer deals")
+                
+                deal = {
+                    'id': re.sub(r'[^a-z0-9]', '', f"{store['name']}flyer")[:20],
+                    'title': f"{store['name']} Weekly Flyer Deals",
+                    'imageUrl': base_image or f"https://via.placeholder.com/300x200/4285f4/ffffff?text={store['name']}",
+                    'price': price,
+                    'originalPrice': original_price, 
+                    'discountPercent': discount,
+                    'category': 'Flyer',
+                    'description': f"{store['emoji']} Check out this week's {store['name']} flyer deals and special offers!",
+                    'affiliateUrl': store['url'],
+                    'featured': False,
+                    'dateAdded': datetime.now().strftime('%Y-%m-%d')
+                }
+                deals.append(deal)
+        
+        # If no specific stores found, create a generic flyer deal
+        if not deals:
+            price, original_price, discount = self.generate_pricing("weekly flyer deals")
+            deals.append({
+                'id': re.sub(r'[^a-z0-9]', '', original_title.lower())[:20],
+                'title': original_title,
+                'imageUrl': base_image or "https://via.placeholder.com/300x200/4285f4/ffffff?text=Flyer",
+                'price': price,
+                'originalPrice': original_price,
+                'discountPercent': discount, 
+                'category': 'Flyer',
+                'description': '📄 Weekly flyer deals and special offers from multiple stores!',
+                'affiliateUrl': 'https://www.smartcanucks.ca/',
+                'featured': False,
+                'dateAdded': datetime.now().strftime('%Y-%m-%d')
+            })
+            
+        return deals
+
     def extract_image_from_post(self, post_url):
         """Extract the largest/best product image from blog post"""
         try:
@@ -345,61 +402,67 @@ class SimplifiedScraper:
                     title = entry.title
                     print(f"Processing: {title[:50]}...")
                     
-                    # Generate deal data
-                    deal_id = re.sub(r'[^a-z0-9]', '', title.lower())[:20] or f"deal{i}"
-                    
-                    # Extract the real deal URL from the blog post
-                    affiliate_url = self.extract_deal_url_from_post(entry.link, title) if hasattr(entry, 'link') else self.get_merchant_homepage(title)
-                    
-                    # Skip this deal if we couldn't find a valid URL
-                    if not affiliate_url:
-                        print(f"  Skipped: {title[:30]}... (no valid URL)")
-                        continue
-                    
-                    price, original_price, discount = self.generate_pricing(title)
-                    description = self.generate_description(title)
-                    
-                    # Try to get image from RSS first (better than scraping)
-                    image_url = None
-                    
-                    # RSS feeds often have image in media_content or enclosures
-                    if hasattr(entry, 'media_content') and entry.media_content:
-                        image_url = entry.media_content[0]['url']
-                    elif hasattr(entry, 'enclosures') and entry.enclosures:
-                        for enc in entry.enclosures:
-                            if enc.type.startswith('image/'):
-                                image_url = enc.href
-                                break
-                    elif hasattr(entry, 'links'):
-                        for link in entry.links:
-                            if link.get('type', '').startswith('image/'):
-                                image_url = link.href
-                                break
-                    
-                    # Fallback to scraping post if no RSS image
-                    if not image_url and hasattr(entry, 'link'):
-                        image_url = self.extract_image_from_post(entry.link)
-                    
-                    # Final fallback to placeholder
-                    if not image_url:
-                        image_url = f"https://via.placeholder.com/300x200/4285f4/ffffff?text={title.split()[0]}"
-                    
-                    deal = {
-                        'id': deal_id,
-                        'title': title,
-                        'imageUrl': image_url,
-                        'price': price,
-                        'originalPrice': original_price,
-                        'discountPercent': discount,
-                        'category': 'General',
-                        'description': description,
-                        'affiliateUrl': affiliate_url,
-                        'featured': i < 3,  # First 3 from each feed are featured
-                        'dateAdded': datetime.now().strftime('%Y-%m-%d')
-                    }
-                    
-                    all_deals.append(deal)
-                    print(f"Added: {title[:30]}... -> {affiliate_url[:40]}...")
+                    # Check if this is a flyer roundup and break it into individual store cards
+                    if any(word in title.lower() for word in ['flyer', 'flyers']) and ('deals' in title.lower() or 'offers' in title.lower()):
+                        flyer_deals = self.create_individual_flyer_cards(title, entry)
+                        all_deals.extend(flyer_deals)
+                        print(f"Created {len(flyer_deals)} individual flyer cards from: {title[:30]}...")
+                    else:
+                        # Generate regular deal data
+                        deal_id = re.sub(r'[^a-z0-9]', '', title.lower())[:20] or f"deal{i}"
+                        
+                        # Extract the real deal URL from the blog post
+                        affiliate_url = self.extract_deal_url_from_post(entry.link, title) if hasattr(entry, 'link') else self.get_merchant_homepage(title)
+                        
+                        # Skip this deal if we couldn't find a valid URL
+                        if not affiliate_url:
+                            print(f"  Skipped: {title[:30]}... (no valid URL)")
+                            continue
+                        
+                        price, original_price, discount = self.generate_pricing(title)
+                        description = self.generate_description(title)
+                        
+                        # Try to get image from RSS first (better than scraping)
+                        image_url = None
+                        
+                        # RSS feeds often have image in media_content or enclosures
+                        if hasattr(entry, 'media_content') and entry.media_content:
+                            image_url = entry.media_content[0]['url']
+                        elif hasattr(entry, 'enclosures') and entry.enclosures:
+                            for enc in entry.enclosures:
+                                if enc.type.startswith('image/'):
+                                    image_url = enc.href
+                                    break
+                        elif hasattr(entry, 'links'):
+                            for link in entry.links:
+                                if link.get('type', '').startswith('image/'):
+                                    image_url = link.href
+                                    break
+                        
+                        # Fallback to scraping post if no RSS image
+                        if not image_url and hasattr(entry, 'link'):
+                            image_url = self.extract_image_from_post(entry.link)
+                        
+                        # Final fallback to placeholder
+                        if not image_url:
+                            image_url = f"https://via.placeholder.com/300x200/4285f4/ffffff?text={title.split()[0]}"
+                        
+                        deal = {
+                            'id': deal_id,
+                            'title': title,
+                            'imageUrl': image_url,
+                            'price': price,
+                            'originalPrice': original_price,
+                            'discountPercent': discount,
+                            'category': 'General',
+                            'description': description,
+                            'affiliateUrl': affiliate_url,
+                            'featured': i < 3,  # First 3 from each feed are featured
+                            'dateAdded': datetime.now().strftime('%Y-%m-%d')
+                        }
+                        
+                        all_deals.append(deal)
+                        print(f"Added: {title[:30]}... -> {affiliate_url[:40]}...")
                     
                     time.sleep(0.3)  # Be respectful
                     
