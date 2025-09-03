@@ -95,48 +95,37 @@ class AdditionalScraper:
             # Steal the WordPress image - look for screenshots first
             image_url = None
             
-            # Look for actual product images first, then fall back to screenshots
+            # Look for Amazon product images first, then any decent image
+            image_url = None
             all_images = soup.find_all('img')
-            product_image = None
-            screenshot_image = None
-            fallback_image = None
             
+            # First pass: Look for Amazon product images
             for img in all_images:
                 src = img.get('src', '')
                 if not src:
                     continue
                 
-                # Skip obvious buttons and small images
-                if any(skip in src.lower() for skip in ['button', '238-2384957', 'find-out-more', 'click-here']):
-                    continue
-                
-                # Look for Amazon product images (they usually have specific patterns)
-                if any(pattern in src.lower() for pattern in ['_ac_sx', '_ac_sy', 'amazon', 'ssl-images-amazon']):
-                    product_image = src
-                    print(f"  Found Amazon product image: {src[:50]}...")
+                # Prioritize Amazon media images
+                if 'media-amazon.com' in src.lower():
+                    image_url = src
+                    print(f"  Using Amazon product image: {src[:50]}...")
                     break
-                
-                # Look for other high-quality product images
-                elif any(pattern in src.lower() for pattern in ['.jpg', '.jpeg', '.png']) and not any(skip in src.lower() for skip in ['icon', 'logo', 'button', '100x100', '150x150', 'placeholder']):
-                    # Check if it looks like a product image (reasonable size, not tiny)
-                    if ('uploads/' in src and not screenshot_image) or not fallback_image:
-                        if 'screenshot' in src.lower():
-                            screenshot_image = src
-                        else:
-                            fallback_image = src
             
-            # Priority: Product image > Fallback image > Screenshot
-            if product_image:
-                image_url = product_image
-                print(f"  Using Amazon product image: {product_image[:50]}...")
-            elif fallback_image:
-                image_url = fallback_image
-                print(f"  Using fallback image: {fallback_image[:50]}...")
-            elif screenshot_image:
-                image_url = screenshot_image
-                print(f"  Using screenshot as last resort: {screenshot_image[:50]}...")
-            else:
-                image_url = None
+            # Second pass: If no Amazon image found, take first decent image
+            if not image_url:
+                for img in all_images:
+                    src = img.get('src', '')
+                    if not src:
+                        continue
+                    
+                    # Skip obvious junk
+                    if any(skip in src.lower() for skip in ['button', 'icon', 'logo', '100x100', '150x150', '2015']):
+                        continue
+                    
+                    if any(ext in src.lower() for ext in ['.jpg', '.jpeg', '.png']):
+                        image_url = src
+                        print(f"  Using fallback image: {src[:50]}...")
+                        break
             
             if image_url:
                 if image_url.startswith('//'):
