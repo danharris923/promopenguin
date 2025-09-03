@@ -40,7 +40,14 @@ const Sidebar: React.FC<SidebarProps> = ({ topDeals, onDealClick }) => {
       timeAgo: "1 hour ago"
     },
     {
-      title: "Best Buy Boxing Day Preview Sale 📦",
+      title: "ROXY Summer Clearance 🏄‍♀️",
+      url: "https://shopstyle.it/l/cug5r",
+      logo: "https://logo.clearbit.com/roxy.com",
+      fallbackText: "R",
+      timeAgo: "3 hours ago"
+    },
+    {
+      title: "Best Buy Labour Day Sale 📦",
       url: "https://bestbuy.ca/?tag=promopenguin-20",
       logo: "https://logo.clearbit.com/bestbuy.ca",
       fallbackText: "BB",

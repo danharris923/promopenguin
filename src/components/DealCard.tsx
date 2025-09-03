@@ -109,7 +109,7 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
                   <img 
                     src={deal.imageUrl} 
                     alt={deal.title}
-                    className="w-full h-full object-contain p-4"
+                    className="w-full h-full object-cover p-2"
                     onError={handleImageError}
                     loading="lazy"
                   />
@@ -170,7 +170,7 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
           <img 
             src={deal.imageUrl} 
             alt={deal.title}
-            className="w-full h-full object-contain p-4"
+            className="w-full h-full object-cover p-2"
             onError={handleImageError}
             loading="lazy"
           />

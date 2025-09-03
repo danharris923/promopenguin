@@ -145,11 +145,70 @@ class AdditionalScraper:
                     image_url = self.base_url + image_url
                 print(f"  Stole WordPress image: {image_url[:50]}...")
             
-            return shortlink, image_url
+            # Extract actual content after the Ashly Fraser intro
+            actual_content = self.extract_content_after_intro(post_content)
+            
+            return shortlink, image_url, actual_content
             
         except Exception as e:
             print(f"  Error extracting from post {post_url}: {e}")
-            return None, None
+            return None, None, None
+
+    def extract_content_after_intro(self, post_content):
+        """Extract the actual descriptive text after Ashly Fraser's standard intro, excluding social links"""
+        if not post_content:
+            return ""
+        
+        # Get all text content
+        full_text = post_content.get_text()
+        
+        # Look for the end of the standard intro pattern
+        intro_patterns = [
+            r"If you're not sure whether to buy, add to cart, and you can come back to it later!\*\*",
+            r"add to cart, and you can come back to it later!",
+            r"read some of the reviews and see people thought of the product",
+        ]
+        
+        # Try to find where the intro ends
+        content_start = 0
+        for pattern in intro_patterns:
+            match = re.search(pattern, full_text, re.IGNORECASE)
+            if match:
+                content_start = match.end()
+                break
+        
+        # Extract content after the intro
+        actual_content = full_text[content_start:].strip()
+        
+        # Remove social media links and URLs
+        social_patterns = [
+            r'https?://[^\s]+',  # Any URLs
+            r'www\.[^\s]+',      # www links
+            r'facebook\.com[^\s]*', 
+            r'twitter\.com[^\s]*',
+            r'instagram\.com[^\s]*',
+            r'youtube\.com[^\s]*',
+            r'tiktok\.com[^\s]*',
+            r'Follow us on[^\n]*',
+            r'Like us on[^\n]*',
+            r'Subscribe[^\n]*',
+        ]
+        
+        for pattern in social_patterns:
+            actual_content = re.sub(pattern, '', actual_content, flags=re.IGNORECASE)
+        
+        # If we didn't find much content after the intro, just return the title
+        if len(actual_content.strip()) < 50:
+            # Get the title from the beginning (before "sells on Amazon")
+            title_match = re.search(r'^(.*?)(?:\s+sells on Amazon|$)', full_text, re.IGNORECASE)
+            if title_match:
+                actual_content = title_match.group(1).strip()
+                # Remove the author name and date if it's there
+                actual_content = re.sub(r'^.*?\d{4}\s+\d+\s+', '', actual_content).strip()
+        
+        # Clean up whitespace and limit length
+        actual_content = re.sub(r'\s+', ' ', actual_content).strip()
+        return actual_content[:300] + ('...' if len(actual_content) > 300 else '')
 
     def resolve_and_retag_url(self, original_url):
         """Resolve any shortened/redirect URLs and retag to our Amazon affiliate"""
@@ -234,7 +293,7 @@ class AdditionalScraper:
                     
                     # Always extract shortlink and image from the blog post
                     print(f"  [INFO] Extracting shortlink and image from post...")
-                    shortlink, image_url = self.extract_shortlink_and_image(post_url)
+                    shortlink, image_url, actual_content = self.extract_shortlink_and_image(post_url)
                     
                     if not shortlink:
                         print(f"  [SKIP] No Amazon shortlink found in post...")
@@ -249,9 +308,9 @@ class AdditionalScraper:
                     # Generate deal data from RSS entry
                     deal_id = re.sub(r'[^a-z0-9]', '', title.lower())[:20] or f"add{len(all_deals)}"
                     
-                    # Remove all pricing logic - we don't show prices anymore
-                    price = 0.0
-                    original_price = 0.0
+                    # Use blank/null for pricing instead of 0
+                    price = None
+                    original_price = None
                     discount = 0
                     
                     # Clean up title (remove price info and common prefixes)
@@ -259,13 +318,12 @@ class AdditionalScraper:
                     clean_title = re.sub(r'^(?:deal|sale|save|hot)\s*:?\s*', '', clean_title, flags=re.IGNORECASE)
                     clean_title = clean_title.strip()
                     
-                    # Use entry description or generate one
-                    description = getattr(entry, 'description', '') or getattr(entry, 'summary', '')
-                    if not description:
-                        description = f"🔥 Great deal on {clean_title}! Don't miss out on these savings!"
-                    
-                    # Clean description HTML
-                    description = re.sub(r'<[^>]+>', '', description)[:200] + ('...' if len(description) > 200 else '')
+                    # Use actual content extracted from post, or title if empty
+                    if actual_content and len(actual_content.strip()) > 10:
+                        description = actual_content
+                    else:
+                        # If no good content found, just double the title
+                        description = f"{clean_title} - {clean_title}"
                     
                     # Use extracted image or placeholder
                     if not image_url:

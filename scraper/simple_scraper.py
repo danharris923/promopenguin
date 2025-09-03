@@ -28,10 +28,30 @@ class SimplifiedScraper:
         """Extract the actual deal/sale URL from the blog post"""
         title_lower = title.lower()
         
-        # Override specific merchants with our affiliate links
+        # Priority 1: Override with our specific affiliate links
         if any(word in title_lower for word in ['walmart']):
-            print(f"  Using Walmart affiliate override")
+            print(f"  Using Walmart ShopStyle affiliate override")
             return 'https://shopstyle.it/l/cuge4'
+        
+        if any(word in title_lower for word in ['lululemon', 'lulu']):
+            print(f"  Using Lululemon ShopStyle affiliate override")
+            return 'https://shopstyle.it/l/cj22Z'
+        
+        if any(word in title_lower for word in ['gap']):
+            print(f"  Using Gap ShopStyle affiliate override")
+            return 'https://shopstyle.it/l/cj24C'
+        
+        if any(word in title_lower for word in ['roxy']):
+            print(f"  Using ROXY ShopStyle affiliate override")
+            return 'https://shopstyle.it/l/cug5r'
+        
+        if any(word in title_lower for word in ['best buy', 'bestbuy']):
+            print(f"  Using Best Buy affiliate override")
+            return 'https://bestbuy.ca/?tag=promopenguin-20'
+        
+        if any(word in title_lower for word in ['cabela', 'bass pro']):
+            print(f"  Using Bass Pro/Cabela affiliate override")
+            return 'https://www.basspro.ca/home?utm_source=RAN&utm_medium=affiliate&utm_content=Living+off+the+GRID+in+Canada&ranMID=50435&ranEAID=sUVpAjRtGL4&ranSiteID=sUVpAjRtGL4-Ycc1ydj30YCWas34PH9jlg'
         
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (compatible; PromoBot/1.0)'}
@@ -148,48 +168,65 @@ class SimplifiedScraper:
         """Get clean merchant homepage as fallback"""
         title_lower = title.lower()
         
-        # Only use affiliate links where we have confirmed partnerships
-        if any(word in title_lower for word in ['amazon', 'amzn']):
-            return f'https://amazon.ca/?tag={self.affiliate_tag}'
-        
-        # Walmart deals go to our ShopStyle affiliate link
+        # Priority 1: Our affiliate links (same as extract_deal_url_from_post)
         if any(word in title_lower for word in ['walmart']):
             return 'https://shopstyle.it/l/cuge4'
         
+        if any(word in title_lower for word in ['lululemon', 'lulu']):
+            return 'https://shopstyle.it/l/cj22Z'
+        
+        if any(word in title_lower for word in ['gap']):
+            return 'https://shopstyle.it/l/cj24C'
+        
+        if any(word in title_lower for word in ['roxy']):
+            return 'https://shopstyle.it/l/cug5r'
+        
+        if any(word in title_lower for word in ['best buy', 'bestbuy']):
+            return 'https://bestbuy.ca/?tag=promopenguin-20'
+        
+        if any(word in title_lower for word in ['cabela', 'bass pro']):
+            return 'https://www.basspro.ca/home?utm_source=RAN&utm_medium=affiliate&utm_content=Living+off+the+GRID+in+Canada&ranMID=50435&ranEAID=sUVpAjRtGL4&ranSiteID=sUVpAjRtGL4-Ycc1ydj30YCWas34PH9jlg'
+        
+        # Amazon gets our tag
+        if any(word in title_lower for word in ['amazon', 'amzn']):
+            return f'https://amazon.ca/?tag={self.affiliate_tag}'
+        
         # Clean merchant homepages
         merchant_map = {
-            'shoppers drug mart': 'https://shoppersdrugmart.ca/',
-            'best buy': 'https://bestbuy.ca/',
-            'walmart': 'https://walmart.ca/',
-            'costco': 'https://costco.ca/',
-            'canadian tire': 'https://canadiantire.ca/',
-            'loblaws': 'https://loblaws.ca/',
-            'metro': 'https://metro.ca/',
-            'no frills': 'https://nofrills.ca/',
-            'sobeys': 'https://sobeys.com/',
-            'home depot': 'https://homedepot.ca/',
-            'rona': 'https://rona.ca/',
-            'staples': 'https://staples.ca/',
-            'the bay': 'https://thebay.com/',
-            'sport chek': 'https://sportchek.ca/',
-            'marks': 'https://marks.com/',
-            "mark's": 'https://marks.com/',
-            'winners': 'https://winners.ca/',
-            'marshalls': 'https://marshalls.ca/',
-            'dollarama': 'https://dollarama.com/',
-            'gap': 'https://gap.ca/',
-            'coach': 'https://coach.com/ca/',
-            'lacoste': 'https://lacoste.com/ca/',
-            'under armour': 'https://underarmour.ca/',
-            'bouclair': 'https://bouclair.com/',
-            'air miles': 'https://airmiles.ca/',
+            'shoppers drug mart': 'https://www.shoppersdrugmart.ca/',
+            'best buy': 'https://www.bestbuy.ca/',
+            'walmart': 'https://www.walmart.ca/',
+            'costco': 'https://www.costco.ca/',
+            'canadian tire': 'https://www.canadiantire.ca/',
+            'loblaws': 'https://www.loblaws.ca/',
+            'metro': 'https://www.metro.ca/',
+            'no frills': 'https://www.nofrills.ca/',
+            'sobeys': 'https://www.sobeys.com/',
+            'home depot': 'https://www.homedepot.ca/',
+            'rona': 'https://www.rona.ca/',
+            'staples': 'https://www.staples.ca/',
+            'the bay': 'https://www.thebay.com/',
+            'sport chek': 'https://www.sportchek.ca/',
+            'marks': 'https://www.marks.com/',
+            "mark's": 'https://www.marks.com/',
+            'winners': 'https://www.winners.ca/',
+            'marshalls': 'https://www.marshalls.ca/',
+            'dollarama': 'https://www.dollarama.com/',
+            'gap': 'https://www.gap.ca/',
+            'coach': 'https://www.coach.com/ca/',
+            'lacoste': 'https://www.lacoste.com/ca/',
+            'under armour': 'https://www.underarmour.ca/',
+            'bouclair': 'https://www.bouclair.com/',
+            'air miles': 'https://www.airmiles.ca/',
+            'giant tiger': 'https://www.gianttiger.com/',
+            'herschel': 'https://www.herschel.ca/',
         }
         
         for merchant, url in merchant_map.items():
             if merchant in title_lower:
                 return url
         
-        return 'https://smartcanucks.ca/'  # Last resort fallback
+        return 'https://www.smartcanucks.ca/'  # Last resort fallback
 
     def extract_image_from_post(self, post_url):
         """Extract the largest/best product image from blog post"""
