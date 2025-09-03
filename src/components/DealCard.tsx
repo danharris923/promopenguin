@@ -111,10 +111,7 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
                     alt={deal.title}
                     className="w-full h-full object-contain p-4"
                     onError={handleImageError}
-                    loading="eager"
-                    referrerPolicy="no-referrer"
-                    crossOrigin="anonymous"
-                    decoding="async"
+                    loading="lazy"
                   />
                 </div>
               </div>
@@ -175,10 +172,7 @@ const DealCard: React.FC<DealCardProps> = ({ deal, onClick, variant = 'default',
             alt={deal.title}
             className="w-full h-full object-contain p-4"
             onError={handleImageError}
-            loading="eager"
-            referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
-            decoding="async"
+            loading="lazy"
           />
         </div>
         
