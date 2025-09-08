@@ -166,8 +166,10 @@ const Flyers: React.FC = () => {
             const originalPrice = parseFloat(item.price || item.original_price || item.regular_price || salePrice || '0');
             const discount = salePrice < originalPrice ? Math.round(((originalPrice - salePrice) / originalPrice) * 100) : 0;
             
-            // Enhanced image URL selection with fallback hierarchy  
-            const imageUrl = item.large_image_url || 
+            // Enhanced image URL selection with Flipp API field names
+            const imageUrl = item.clean_image_url || 
+                           item.clipping_image_url ||
+                           item.large_image_url || 
                            item.image_url || 
                            item.product_image_url ||
                            item.thumbnail_url ||
